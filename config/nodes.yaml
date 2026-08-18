@@ -1,0 +1,40 @@
+nodes:
+  finance:
+    display_name: "Financial Operations & Revenue Analytics"
+    description: "Automated revenue reporting, billing reconciliation, and currency variance models."
+    authorized_roles: ["finance_admin", "financial_controller", "finance_analyst"]
+    primary_dataset: "sdo_finance_demo"
+    default_skill: "finance"
+    target_repo: "wallbox/finance-pipelines"
+
+  sales:
+    display_name: "Global Sales & Commercial Pipeline"
+    description: "Sales forecasting, lead conversion analytics, and CRM reporting views."
+    authorized_roles: ["sales_lead", "commercial_ops", "finance_admin"]
+    primary_dataset: "sdo_sales_demo"
+    default_skill: "sales"
+    target_repo: "wallbox/sales-bi"
+
+  firmware:
+    display_name: "EV Charger Firmware & IoT Telemetry"
+    description: "OCPP protocol validation, firmware rollout tracking, and charging session analytics."
+    authorized_roles: ["firmware_engineer", "embedded_lead", "iot_operator"]
+    primary_dataset: "sdo_firmware_demo"
+    default_skill: "firmware"
+    target_repo: "wallbox/pulsar-firmware"
+
+  marketing:
+    display_name: "Growth & Customer Acquisition"
+    description: "Marketing campaign attribution, cohort retention analysis, and web analytics."
+    authorized_roles: ["marketing_manager", "growth_analyst"]
+    primary_dataset: "sdo_marketing_demo"
+    default_skill: "marketing"
+    target_repo: "wallbox/marketing-analytics"
+
+  logistics:
+    display_name: "Supply Chain & Manufacturing Operations"
+    description: "Inventory turnover, warehouse dispatch SLAs, and parts supply forecasting."
+    authorized_roles: ["supply_chain_lead", "plant_manager"]
+    primary_dataset: "sdo_logistics_demo"
+    default_skill: "finance"
+    target_repo: "wallbox/supply-chain"

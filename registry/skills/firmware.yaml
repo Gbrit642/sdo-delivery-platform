@@ -1,0 +1,46 @@
+domain: firmware
+display_name: "EV Charger Firmware & IoT Telemetry"
+description: "OCPP protocol validation, charging sessions analytics, and firmware rollout tracking."
+authorized_roles:
+  - "firmware_engineer"
+  - "embedded_lead"
+  - "iot_operator"
+
+authorized_tables:
+  - "sdo_firmware_demo.charger_telemetry"
+  - "sdo_firmware_demo.firmware_releases"
+  - "sdo_firmware_demo.error_logs"
+
+intake_guidelines:
+  prompt_guidance: |
+    Ensure the brief specifies charger models (e.g. Pulsar Plus, Commander 2), OCPP versions (1.6J/2.0.1), and telemetry intervals.
+  required_brief_keywords:
+    - "charger"
+    - "firmware"
+  prohibited_scope:
+    - "Over-the-air firmware flash without staging verification"
+
+spec_validation_rules:
+  required_frontmatter_fields:
+    - "id"
+    - "title"
+    - "node_id"
+    - "created_at"
+    - "target_repository"
+  mandatory_metrics:
+    - "target_sla_seconds"
+    - "baseline_error_rate"
+    - "telemetry_ingestion_delay_ms"
+  prohibited_sql_patterns:
+    - "DROP TABLE"
+    - "DELETE FROM"
+    - "TRUNCATE"
+
+acceptance_criteria:
+  min_unit_test_pass_rate: 100.0
+  min_test_coverage_pct: 90.0
+  max_query_cost_usd: 3.00
+  required_test_types:
+    - "unit"
+    - "telemetry_schema_validation"
+    - "ocpp_compliance_check"

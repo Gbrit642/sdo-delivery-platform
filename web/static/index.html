@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallbox SDO Platform — ADK 2.0 Engine (GCP)</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo-badge">⚡ Wallbox SDO</div>
+            <span class="header-sub">Software Delivery Optimization Platform</span>
+        </div>
+        <div class="header-right">
+            <span class="badge badge-gcp">GCP: managed-agent-504409</span>
+            <span class="badge badge-model">Model: gemini-3.7-flash</span>
+            <span class="badge badge-status" id="health-status">● Live Engine</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Section 1: Brief Intake Form -->
+        <section class="card launcher-card">
+            <h2>🚀 Initiate Delivery Brief</h2>
+            <p class="subtitle">Submit a natural language change request or data analytics brief to orchestrate specialized AI agents.</p>
+            
+            <form id="loop-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="node_id">Domain Node</label>
+                        <select id="node_id" name="node_id">
+                            <option value="finance" selected>Finance (Billing & Revenue Reconciliation)</option>
+                            <option value="sales">Sales (Commercial Pipeline Analytics)</option>
+                            <option value="firmware">Firmware (IoT Telemetry & OCPP)</option>
+                            <option value="marketing">Marketing (Attribution & Funnels)</option>
+                            <option value="logistics">Logistics (Supply Chain & Inventory)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="owner_email">Domain Owner (Google Workspace OIDC)</label>
+                        <input type="email" id="owner_email" value="sarah.controller@wallbox.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="brief_text">Change Brief / Business Requirement</label>
+                    <textarea id="brief_text" rows="3" placeholder="e.g. Create a weekly currency variance analysis view in BigQuery comparing EUR invoices against USD payments with tolerance checking." required>Create a weekly currency variance analysis view in BigQuery comparing EUR invoices against USD payments with tolerance checking.</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-launch">
+                    <span>⚡ Launch SDO Loop</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Section 2: Active Loop Visualizer -->
+        <section class="card loop-details-card" id="loop-view" style="display: none;">
+            <div class="loop-header">
+                <div>
+                    <h2 id="view-loop-id">Loop: ...</h2>
+                    <span class="badge badge-domain" id="view-domain">Finance</span>
+                </div>
+                <div class="loop-state-pill" id="view-state-pill">INTAKE</div>
+            </div>
+
+            <!-- FSM State Pipeline Graph -->
+            <div class="pipeline-flow">
+                <div class="step-node" id="step-INTAKE"><span>1. Intake</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-SPECIFY"><span>2. Specify</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-SPEC_HARNESS"><span>3. Harness</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node step-gate" id="step-GATE_H1"><span>Gate H1 (Human)</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-DESIGN"><span>4. Design</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-IMPLEMENT"><span>5. Sandbox</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-REVIEW"><span>6. Review</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node step-gate" id="step-GATE_H2"><span>Gate H2 (Human)</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-CLOSE"><span>7. Close (PR)</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-WATCH"><span>8. Watch</span></div>
+                <div class="step-arrow">→</div>
+                <div class="step-node" id="step-DONE"><span>DONE</span></div>
+            </div>
+
+            <!-- Gate Resolution Banner (Appears when paused) -->
+            <div class="gate-action-box" id="gate-action-panel" style="display: none;">
+                <div class="gate-info">
+                    <h3 id="gate-title">Gate Sign-Off Required</h3>
+                    <p id="gate-desc">Review the generated deliverables below and sign off to advance execution.</p>
+                </div>
+                <div class="gate-buttons">
+                    <button class="btn btn-success" id="btn-gate-approve">✓ Approve</button>
+                    <button class="btn btn-warning" id="btn-gate-changes">✎ Request Changes</button>
+                    <button class="btn btn-danger" id="btn-gate-reject">✗ Reject</button>
+                </div>
+            </div>
+
+            <!-- Tabbed Artifact Viewer -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-spec">Specification (spec.md)</button>
+                <button class="tab-btn" data-tab="tab-design">Technical Design (design.md)</button>
+                <button class="tab-btn" data-tab="tab-code">Code & SQL Deliverables</button>
+                <button class="tab-btn" data-tab="tab-sandbox">Sandbox Test Reports</button>
+                <button class="tab-btn" data-tab="tab-audit">WORM Audit & Telemetry</button>
+            </div>
+
+            <div class="tab-content active" id="tab-spec">
+                <pre><code id="content-spec">No specification generated yet.</code></pre>
+            </div>
+
+            <div class="tab-content" id="tab-design">
+                <pre><code id="content-design">No technical design generated yet.</code></pre>
+            </div>
+
+            <div class="tab-content" id="tab-code">
+                <pre><code id="content-code">No code artifacts generated yet.</code></pre>
+            </div>
+
+            <div class="tab-content" id="tab-sandbox">
+                <div class="sandbox-metrics" id="sandbox-metrics-summary"></div>
+                <pre><code id="content-sandbox">No sandbox tests executed yet.</code></pre>
+            </div>
+
+            <div class="tab-content" id="tab-audit">
+                <pre><code id="content-audit">No audit records sealed yet.</code></pre>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

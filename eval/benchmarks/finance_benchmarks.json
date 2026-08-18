@@ -1,0 +1,26 @@
+[
+  {
+    "benchmark_id": "BENCH-FIN-01",
+    "node_id": "finance",
+    "brief": "Create a weekly currency variance analysis view in BigQuery comparing EUR invoices with USD receipts.",
+    "expected_tables": ["sdo_finance_demo.invoices", "sdo_finance_demo.exchange_rates"],
+    "expected_metrics": ["target_sla_seconds", "reconciliation_variance_tolerance_pct"],
+    "target_pass_rate": 100.0
+  },
+  {
+    "benchmark_id": "BENCH-SALES-02",
+    "node_id": "sales",
+    "brief": "Create an automated sales pipeline conversion view aggregating monthly opportunities by stage.",
+    "expected_tables": ["sdo_sales_demo.opportunities"],
+    "expected_metrics": ["target_sla_seconds", "conversion_variance_pct"],
+    "target_pass_rate": 100.0
+  },
+  {
+    "benchmark_id": "BENCH-FW-03",
+    "node_id": "firmware",
+    "brief": "Aggregate hourly charger error logs and telemetry metrics across Pulsar Plus devices.",
+    "expected_tables": ["sdo_firmware_demo.charger_telemetry", "sdo_firmware_demo.error_logs"],
+    "expected_metrics": ["target_sla_seconds", "telemetry_ingestion_delay_ms"],
+    "target_pass_rate": 100.0
+  }
+]

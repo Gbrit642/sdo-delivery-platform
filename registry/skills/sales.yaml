@@ -1,0 +1,46 @@
+domain: sales
+display_name: "Global Sales & Commercial Pipeline"
+description: "Sales pipeline velocity, lead conversion analytics, and CRM reporting views."
+authorized_roles:
+  - "sales_lead"
+  - "commercial_ops"
+  - "finance_admin"
+
+authorized_tables:
+  - "sdo_sales_demo.opportunities"
+  - "sdo_sales_demo.accounts"
+  - "sdo_sales_demo.lead_conversions"
+
+intake_guidelines:
+  prompt_guidance: |
+    Ensure the brief specifies sales territories, pipeline stages, attribution models, and conversion timeframes.
+  required_brief_keywords:
+    - "pipeline"
+    - "conversion"
+  prohibited_scope:
+    - "Exposing raw unmasked customer PII"
+
+spec_validation_rules:
+  required_frontmatter_fields:
+    - "id"
+    - "title"
+    - "node_id"
+    - "created_at"
+    - "target_repository"
+  mandatory_metrics:
+    - "target_sla_seconds"
+    - "baseline_error_rate"
+    - "conversion_variance_pct"
+  prohibited_sql_patterns:
+    - "DROP TABLE"
+    - "DELETE FROM"
+    - "TRUNCATE"
+
+acceptance_criteria:
+  min_unit_test_pass_rate: 100.0
+  min_test_coverage_pct: 85.0
+  max_query_cost_usd: 1.50
+  required_test_types:
+    - "unit"
+    - "sql_syntax_lint"
+    - "pii_masking_check"

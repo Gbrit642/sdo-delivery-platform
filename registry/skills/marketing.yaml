@@ -1,0 +1,45 @@
+domain: marketing
+display_name: "Growth & Customer Acquisition"
+description: "Campaign attribution models, CAC/LTV reporting, and web funnel conversion."
+authorized_roles:
+  - "marketing_manager"
+  - "growth_analyst"
+
+authorized_tables:
+  - "sdo_marketing_demo.campaign_events"
+  - "sdo_marketing_demo.user_acquisitions"
+  - "sdo_marketing_demo.ad_spend"
+
+intake_guidelines:
+  prompt_guidance: |
+    Ensure the brief specifies marketing channels (Search, Social, Affiliate), attribution window (7d/30d), and campaign IDs.
+  required_brief_keywords:
+    - "campaign"
+    - "attribution"
+  prohibited_scope:
+    - "Direct export of unhashed customer email lists"
+
+spec_validation_rules:
+  required_frontmatter_fields:
+    - "id"
+    - "title"
+    - "node_id"
+    - "created_at"
+    - "target_repository"
+  mandatory_metrics:
+    - "target_sla_seconds"
+    - "baseline_error_rate"
+    - "cac_calculation_variance_pct"
+  prohibited_sql_patterns:
+    - "DROP TABLE"
+    - "DELETE FROM"
+    - "TRUNCATE"
+
+acceptance_criteria:
+  min_unit_test_pass_rate: 100.0
+  min_test_coverage_pct: 85.0
+  max_query_cost_usd: 1.00
+  required_test_types:
+    - "unit"
+    - "sql_syntax_lint"
+    - "gdpr_cookie_consent_filter_check"

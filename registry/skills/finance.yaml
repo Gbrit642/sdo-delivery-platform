@@ -1,0 +1,52 @@
+domain: finance
+display_name: "Financial Operations & Revenue Analytics"
+description: "Automated billing reconciliation, currency variance models, and revenue analytics."
+authorized_roles:
+  - "finance_admin"
+  - "financial_controller"
+  - "finance_analyst"
+
+authorized_tables:
+  - "sdo_finance_demo.invoices"
+  - "sdo_finance_demo.billing_events"
+  - "sdo_finance_demo.exchange_rates"
+  - "sdo_finance_demo.revenue_summary"
+
+intake_guidelines:
+  prompt_guidance: |
+    You are assisting a Finance domain owner. Ensure the brief clearly specifies the reporting period,
+    target currency (EUR/USD/GBP), reconciliation tolerances, and anomaly thresholds.
+  required_brief_keywords:
+    - "currency"
+    - "revenue"
+    - "period"
+  prohibited_scope:
+    - "Direct write to production ERP"
+    - "Modifying historical closed ledgers"
+
+spec_validation_rules:
+  required_frontmatter_fields:
+    - "id"
+    - "title"
+    - "node_id"
+    - "created_at"
+    - "target_repository"
+  mandatory_metrics:
+    - "target_sla_seconds"
+    - "baseline_error_rate"
+    - "reconciliation_variance_tolerance_pct"
+  prohibited_sql_patterns:
+    - "DROP TABLE"
+    - "DELETE FROM"
+    - "TRUNCATE"
+    - "ALTER TABLE"
+
+acceptance_criteria:
+  min_unit_test_pass_rate: 100.0
+  min_test_coverage_pct: 90.0
+  max_query_cost_usd: 2.50
+  required_test_types:
+    - "unit"
+    - "sql_syntax_lint"
+    - "null_value_boundary"
+    - "currency_precision_check"
