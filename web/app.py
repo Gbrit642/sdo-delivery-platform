@@ -304,23 +304,44 @@ async def get_agent_card():
         "name": "Wallbox SDO Delivery Platform",
         "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
         "version": "0.1.0",
-        "protocol_version": "1.0",
-        "provider": {
-            "organization": "Wallbox",
-            "project_id": settings.project_id,
-            "region": settings.region,
-        },
+        "url": "https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app/a2a/app/.well-known/agent-card.json",
+        "defaultInputModes": ["text"],
+        "defaultOutputModes": ["text"],
         "capabilities": {
             "streaming": True,
-            "tools": ["BigQueryMCP", "ManagedSandbox", "GitHubVCS", "SkillRegistry"],
-            "domains": ["finance", "sales", "firmware", "marketing", "logistics"],
-            "governance": ["TwoTierQualityHarness", "GateH1", "GateH2", "WORMAuditTrail"],
         },
-        "endpoints": {
-            "create_loop": "/api/v1/loops",
-            "resolve_gate": "/api/v1/loops/{loop_id}/gates/{gate}/resolve",
-            "chat_webhook": "/api/v1/chat/webhook",
-        },
+        "skills": [
+            {
+                "id": "finance_variance",
+                "name": "Finance FX & Revenue Variance",
+                "description": "Analyzes invoice reconciliation and FX variance.",
+                "tags": ["finance", "bigquery"],
+            },
+            {
+                "id": "sales_pipeline",
+                "name": "Sales Opportunity Pipeline",
+                "description": "Aggregates commercial pipeline conversion metrics.",
+                "tags": ["sales"],
+            },
+            {
+                "id": "firmware_telemetry",
+                "name": "Firmware & IoT Telemetry",
+                "description": "Analyzes OCPP charger logs and device errors.",
+                "tags": ["firmware", "iot"],
+            },
+            {
+                "id": "marketing_attribution",
+                "name": "Marketing Multi-Touch Attribution",
+                "description": "Calculates customer acquisition cost across channels.",
+                "tags": ["marketing"],
+            },
+            {
+                "id": "logistics_turnover",
+                "name": "Supply Chain & Logistics",
+                "description": "Monitors warehouse dispatch SLAs and inventory turnover.",
+                "tags": ["logistics"],
+            },
+        ],
     }
 
 
