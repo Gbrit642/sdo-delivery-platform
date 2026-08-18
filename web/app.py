@@ -304,6 +304,7 @@ async def get_agent_card():
         "name": "Wallbox SDO Delivery Platform",
         "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
         "version": "0.1.0",
+        "protocolVersion": "1.0",
         "url": "https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app/a2a/app/.well-known/agent-card.json",
         "defaultInputModes": ["text"],
         "defaultOutputModes": ["text"],
