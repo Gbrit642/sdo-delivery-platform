@@ -145,7 +145,7 @@ async def healthz():
 
 
 @app.post("/api/v1/loops", status_code=201)
-async def create_loop(req: CreateLoopRequest):
+async def create_loop(req: CreateLoopRequest, request: Request):
     """Launch a new SDO loop from a natural language brief."""
     loop_id = f"01KZZ{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
@@ -160,13 +160,11 @@ async def create_loop(req: CreateLoopRequest):
 
     assigned_dept = req.department or req.node_id.title()
 
-    initiator = gateway_auth.authenticate_token(
-        {
-            "email": req.owner_email,
-            "roles": assigned_roles,
-            "department": assigned_dept,
-            "sub": f"google|{req.owner_email}",
-        }
+    initiator = gateway_auth.extract_identity_from_headers(
+        headers=dict(request.headers),
+        fallback_email=req.owner_email,
+        fallback_roles=assigned_roles,
+        fallback_dept=assigned_dept,
     )
 
     state = LoopState(
@@ -207,7 +205,7 @@ async def get_loop(loop_id: str):
 
 
 @app.post("/api/v1/loops/{loop_id}/gates/{gate}/resolve")
-async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGateRequest):
+async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGateRequest, request: Request):
     """Resolve human approval Gate H1 or Gate H2 and resume state graph execution."""
     if loop_id not in active_loops:
         raise HTTPException(status_code=404, detail=f"Loop '{loop_id}' not found.")
@@ -223,11 +221,14 @@ async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGate
         except Exception:
             assigned_roles = ["financial_controller"]
 
-    actor = gateway_auth.authenticate_token({
-        "email": req.actor_email,
-        "roles": assigned_roles,
-        "department": req.department or state.initiator.department or state.node_id.title(),
-    })
+    assigned_dept = req.department or state.initiator.department or state.node_id.title()
+
+    actor = gateway_auth.extract_identity_from_headers(
+        headers=dict(request.headers),
+        fallback_email=req.actor_email,
+        fallback_roles=assigned_roles,
+        fallback_dept=assigned_dept,
+    )
 
     resolution = GateResolution(
         gate=gate,

@@ -4,6 +4,12 @@ variable "project_id" {
   default     = "managed-agent-504409"
 }
 
+variable "project_number" {
+  description = "Target Google Cloud Project Number"
+  type        = string
+  default     = "316329647160"
+}
+
 variable "region" {
   description = "GCP primary resource region"
   type        = string
