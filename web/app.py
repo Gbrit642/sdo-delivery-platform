@@ -297,6 +297,33 @@ async def chat_webhook(request: Request):
     return {"text": "SDO Bot acknowledged event."}
 
 
+@app.get("/a2a/app/.well-known/agent-card.json")
+async def get_agent_card():
+    """Agent-to-Agent (A2A) Discovery Card for Gemini Enterprise registration."""
+    return {
+        "name": "Wallbox SDO Delivery Platform",
+        "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
+        "version": "0.1.0",
+        "protocol_version": "1.0",
+        "provider": {
+            "organization": "Wallbox",
+            "project_id": settings.project_id,
+            "region": settings.region,
+        },
+        "capabilities": {
+            "streaming": True,
+            "tools": ["BigQueryMCP", "ManagedSandbox", "GitHubVCS", "SkillRegistry"],
+            "domains": ["finance", "sales", "firmware", "marketing", "logistics"],
+            "governance": ["TwoTierQualityHarness", "GateH1", "GateH2", "WORMAuditTrail"],
+        },
+        "endpoints": {
+            "create_loop": "/api/v1/loops",
+            "resolve_gate": "/api/v1/loops/{loop_id}/gates/{gate}/resolve",
+            "chat_webhook": "/api/v1/chat/webhook",
+        },
+    }
+
+
 # Mount Static Files for Web Dashboard UI
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
