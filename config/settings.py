@@ -20,11 +20,8 @@ class Settings(BaseSettings):
     max_output_tokens: int = 8192
     temperature: float = 0.2
 
-    # Storage & Compliance
+    # Storage & Compliance (WORM Object Retention)
     gcs_worm_bucket: str = "sdo-worm-audit-managed-agent-504409"
-    kms_keyring: str = "sdo-keyring"
-    kms_key_location: str = "global"
-    kms_crypto_key: str = "sdo-gdpr-shredding-key"
 
     # BigQuery Data & Analytics
     bq_dataset: str = "sdo_finance_demo"

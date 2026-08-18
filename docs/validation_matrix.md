@@ -1,0 +1,133 @@
+# Success Criteria & Comprehensive Validation Matrix: Wallbox SDO Platform on GCP
+
+> **Document Version:** 1.0.0  
+> **Target GCP Project:** `managed-agent-504409`  
+> **Target Directory:** `sdo-adk-engine/`  
+> **Core Reasoning Engine:** `gemini-3.7-flash`  
+> **Authoritative Compliance:** SOC 2 Type II, GDPR, Google ADK 2.0 State Graph Standards
+
+---
+
+## 1. Validation Philosophy & Scope
+
+This validation matrix defines the complete set of **Technical Component Success Criteria** and **Scenario-Based End-User Acceptance Tests** required to certify the Wallbox Software Delivery Optimization (SDO) Platform for customer handover.
+
+Every validation item requires deterministic, reproducible proof across five layers:
+1. **Automated Unit & Integration Test Suites:** Passing `pytest` runs (`tests/unit/`, `tests/integration/`).
+2. **Deterministic FSM Trajectory:** Graph transition logs proving zero LLM-driven graph routing.
+3. **Observability & Analytics Streams:** OpenTelemetry Cloud Trace spans and BigQuery Agent Analytics records.
+4. **WORM Cryptographic Integrity:** SHA-256 hashed immutable audit logs in Cloud Storage Object Retention.
+5. **Interactive UI Verification:** Direct execution and visual confirmation in Google Chrome.
+
+---
+
+## 2. Technical Component Success Criteria Matrix
+
+| Component ID | Technical Subsystem | Success Criteria & Verification Rule | Test Type | Target File / Module | Pass/Fail Condition |
+|---|---|---|---|---|---|
+| **TC-01** | **ADK 2.0 State Graph** | 100% deterministic Python routers govern all transitions. Zero LLM routing. `LoopState` hydrated via typed Pydantic models. | Unit Test | [`graphs/router.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/graphs/router.py), [`graphs/workflow.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/graphs/workflow.py) | `pytest tests/unit/test_graph_routing.py` passes 8/8 tests. |
+| **TC-02** | **Scale-to-Zero Human Gates** | Execution freezes at `WAIT_GATE_H1` and `WAIT_GATE_H2` with $0 idle compute cost and zero timeout crashes. Resumes upon HTTP resolution. | Integration | [`graphs/workflow.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/graphs/workflow.py), [`web/app.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/web/app.py) | Loop enters `WAIT_GATE_H1`, persists state, and resumes cleanly on `POST /resolve`. |
+| **TC-03** | **Multi-Domain Skill Registry** | Dynamic YAML loader parses domain rules (`finance`, `sales`, `firmware`, `marketing`) across Intake, Spec Validation, and Acceptance Criteria. | Unit Test | [`registry/skill_registry.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skill_registry.py), [`registry/skills/*.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills) | `get_skill("finance")` returns authorized tables & criteria. `test_skill_registry_loads_all_domains` passes. |
+| **TC-04** | **Two-Tier Quality Harness** | **Tier 1:** Static AST parser checks frontmatter, Gherkin syntax, metrics, and security.<br>**Tier 2:** `PolicyAuditorAgent` (`gemini-3.7-flash`) verifies SOC 2 and scope. | Unit / Node | [`harnesses/tier1_static_rules.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/harnesses/tier1_static_rules.py), [`harnesses/tier2_policy_critic.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/harnesses/tier2_policy_critic.py) | Valid specs pass with 0 violations; invalid/prohibited specs trigger exact policy violations. |
+| **TC-05** | **Governed BigQuery MCP** | Introspects table schema and executes transformations on `sdo_finance_demo` with offline mock fallback. | Unit Test | [`tools/bq_mcp_client.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/tools/bq_mcp_client.py) | `get_table_schema("invoices")` returns 7 columns; queries execute with row telemetry. |
+| **TC-06** | **Ephemeral Managed Sandbox** | Provisions isolated execution container, compiles Python/SQL, and executes `pytest` with 100% pass verification. | Integration | [`tools/managed_sandbox.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/tools/managed_sandbox.py) | Sandbox runs test suite, captures stdout/stderr, returns `pass_rate: 100.0`, destroys container. |
+| **TC-07** | **Governed GitHub Client** | Creates feature branches (`feature/{loop_id}`), commits deliverables, opens PRs, squash-merges, and tags releases (`v1.0.x`). | Integration | [`tools/github_client.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/tools/github_client.py) | Feature branch created, PR merged with SHA hash, semantic release tag provisioned. |
+| **TC-08** | **Agent Gateway & RBAC** | Validates Google Workspace OIDC identity, separates Human vs Agent actions, blocks unauthorized domain access. | Unit Test | [`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py), [`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py) | Authenticated identity classified; unauthorized department role gets `access_denied`. |
+| **TC-09** | **Google Chat Adapter** | Receives webhook messages and formats rich Adaptive Cards for Intake Ack, Gate H1 sign-off, and Gate H2 merge. | Unit Test | [`gateway/chat_adapter.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/chat_adapter.py) | `cardsV2` payload formatted with interactive action buttons. `test_chat_webhook_flow` passes. |
+| **TC-10** | **WORM Audit Trail** | Writes immutable, tamper-evident audit records to Cloud Storage Object Retention (`audit/{node}/{loop}/{seq:08d}/{id}.json`). | Integration | [`storage/worm_audit.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/storage/worm_audit.py) | Object key generated according to ADR-0020; SHA-256 integrity digest stored. |
+| **TC-11** | **OpenTelemetry Tracing** | OpenTelemetry spans created for every state machine transition with `gen_ai.system=google_vertex_ai` and `gen_ai.request.model=gemini-3.7-flash`. | Tracing | [`observability/otel.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/observability/otel.py) | Tracer wraps node executions without throwing exceptions; attributes propagate cleanly. |
+| **TC-12** | **BigQuery Agent Analytics** | Streams structured execution telemetry (token counts, duration, status) into BigQuery dataset `sdo_analytics`. | Analytics | [`observability/analytics.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/observability/analytics.py) | `log_step_event` records session trace events conforming to ADK BigQuery plugin specification. |
+| **TC-13** | **Gemini Enterprise Eval** | Custom evaluation metrics score contract adherence, graph conformance, skill compliance, and sandbox reliability. | Eval Suite | [`eval/custom_metrics.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/eval/custom_metrics.py), [`eval/evaluator.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/eval/evaluator.py) | `aggregate_score >= 0.85` on ground truth benchmarks (`finance_benchmarks.json`). |
+| **TC-14** | **Interactive Web Dashboard** | Web visualizer renders live FSM pipeline graph, active gate resolution buttons, artifact tabs, and sandbox logs. | E2E Browser | [`web/app.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/web/app.py), [`web/static/*`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/web/static) | Verified running in Chrome browser on `http://127.0.0.1:8080`. |
+| **TC-15** | **Terraform Infrastructure** | 1-click Terraform module provisions Cloud Run, GCS WORM bucket, and BigQuery datasets in `managed-agent-504409`. | IaC Plan | [`terraform/*.tf`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/terraform) | `terraform init` and `terraform plan` validate with 0 syntax or resource errors. |
+
+---
+
+## 3. Scenario-Based End-User Business Validation Matrix
+
+| Scenario ID | Domain | User Persona | Business Brief / Requirement | Expected Workflow & Gate Sign-Offs | Success Criteria & Output Artifacts |
+|---|---|---|---|---|---|
+| **SC-01** | **Finance** | Financial Controller (`sarah.controller@wallbox.com`) | *"Create a weekly currency variance analysis view in BigQuery comparing EUR invoices with USD receipts."* | 1. Spec generated with FX metrics.<br>2. Gate H1 approved.<br>3. `transform.py` & `query.sql` tested in sandbox (100% pass).<br>4. Gate H2 approved.<br>5. Squash-merged to main & WORM sealed. | - `spec.md` with Gherkin & FX variance metrics.<br>- BigQuery View: `sdo_finance_demo.weekly_revenue_variance`.<br>- Release tag: `v1.0.0`.<br>- WORM record: `audit/finance/.../EVT-*.json`. |
+| **SC-02** | **Sales** | Commercial Operations (`sales.lead@wallbox.com`) | *"Create an automated sales pipeline conversion view aggregating monthly opportunities by stage."* | 1. Intake validates against `sales.yaml`.<br>2. Spec Harness validates stage conversion metrics.<br>3. Gate H1 sign-off.<br>4. Sandbox executes SQL syntax lint & PII masking checks.<br>5. Gate H2 sign-off & PR merge. | - `spec.md` with `conversion_variance_pct`.<br>- SQL view aggregating `sdo_sales_demo.opportunities`.<br>- Sandbox pass rate: 100%.<br>- PR merged into `wallbox/sales-bi`. |
+| **SC-03** | **Firmware** | Embedded Lead (`firmware.eng@wallbox.com`) | *"Aggregate hourly charger error logs and telemetry metrics across Pulsar Plus devices."* | 1. Intake validates against `firmware.yaml`.<br>2. Spec Harness checks OCPP compliance & ingestion delay metric.<br>3. Gate H1 sign-off.<br>4. Sandbox executes OCPP validation.<br>5. Gate H2 sign-off & release. | - `spec.md` with `telemetry_ingestion_delay_ms`.<br>- Python telemetry parser + BigQuery aggregation view.<br>- PR merged into `wallbox/pulsar-firmware`. |
+| **SC-04** | **Marketing** | Growth Manager (`growth.lead@wallbox.com`) | *"Build a multi-touch campaign attribution view calculating CAC across Search and Social channels."* | 1. Intake validates against `marketing.yaml`.<br>2. Spec Harness verifies no unhashed customer emails.<br>3. Gate H1 sign-off.<br>4. Sandbox executes attribution unit tests.<br>5. Gate H2 sign-off & release. | - `spec.md` with `cac_calculation_variance_pct`.<br>- Attribution query with GDPR consent filtering.<br>- Sandbox pass rate: 100%.<br>- WORM audit log sealed. |
+| **SC-05** | **Logistics** | Supply Chain Lead (`supply.lead@wallbox.com`) | *"Create warehouse dispatch SLA monitoring view tracking parts inventory turnover."* | 1. Intake validates against `nodes.yaml`.<br>2. Spec generated with turnover metrics.<br>3. Gate H1 & H2 approvals.<br>4. Sandbox test execution.<br>5. PR merged & Day 30 watch scheduled. | - `spec.md` with dispatch SLA metrics.<br>- BigQuery inventory turnover view.<br>- Day 30 Watcher status: `HEALTHY`. |
+
+---
+
+## 4. Security, Negative Testing & Failure Recovery Matrix
+
+| Test Case ID | Test Category | Failure Injection / Negative Action | Expected Platform Behavior | Verified Outcome |
+|---|---|---|---|---|
+| **NEG-01** | **Domain Access Control (RBAC)** | User from Sales attempts to launch a Finance loop without `financial_controller` role. | `PolicyInterceptor` blocks execution at `INTAKE`, sets `current_state = CLOSED` with access denied reason. | Access blocked with zero data leakage. |
+| **NEG-02** | **Prohibited SQL Injection** | Business brief / spec attempts destructive SQL (`DROP TABLE sdo_finance_demo.invoices;`). | Tier 1 Static Validator detects prohibited SQL keyword `DROP TABLE` and rejects spec before Gate H1. | Validation fails with explicit violation message; never reaches sandbox. |
+| **NEG-03** | **Missing Mandatory Metrics** | Generated spec omits the required `## Business Metrics` block. | Tier 1 Static Validator catches missing section, triggers deterministic retry back to `SPECIFY`. | Retry counter incremented; spec re-synthesized with metrics. |
+| **NEG-04** | **Sandbox Test Failure & Auto-Fix** | Code artifact contains a deliberate assertion error in `transform.py`. | Reviewer catches test failure (`pass_rate < 100%`), returns `review_outcome = fail_fix`, and routes back to `IMPLEMENT`. | Graph automatically loops back to `IMPLEMENT` for code fix. |
+| **NEG-05** | **Max Retry Budget Escalation** | Synthetic persistent failure across 3 consecutive retry attempts. | `graphs/router.py` detects `retry_count >= max_retries` (3), halts cyclic loop, and transitions directly to `ESCALATED`. | Graph never loops infinitely; cleanly transitions to `ESCALATED` with full reasoning. |
+| **NEG-06** | **Gate H1 Request Changes** | Human reviewer requests modifications to currency conversion scenarios at Gate H1. | Router increments `retry_counts["SPECIFY"]` and transitions state back to `SPECIFY` with feedback appended. | Spec updated with requested scenarios; re-presented at Gate H1. |
+| **NEG-07** | **Gate H2 Rejection** | Human reviewer rejects final release at Gate H2. | Router transitions state to `CLOSED`. Pull Request remains unmerged; release tag is NOT created. | Zero unapproved code deployed to production. |
+
+---
+
+## 5. Verification Runbook & Command Checklist
+
+### Step 1: Run Full Automated Test Suite (All Unit & Integration Tests)
+```bash
+cd sdo-adk-engine
+python3 -m pytest tests/ -v
+```
+**Pass Expectation:** 20/20 tests passed (`tests/unit/test_graph_routing.py`, `tests/unit/test_harnesses_and_skills.py`, `tests/unit/test_api_endpoints.py`, `tests/integration/test_finance_loop_e2e.py`).
+
+### Step 2: Validate REST API & Live Web Dashboard Endpoints
+```bash
+# Health check
+curl -s http://127.0.0.1:8080/healthz
+# Expected output: {"status":"ok","service":"sdo-adk-engine","version":"0.1.0","project_id":"managed-agent-504409","model":"gemini-3.7-flash"}
+
+# Dashboard UI verification
+curl -s -I http://127.0.0.1:8080/
+# Expected HTTP Status: 200 OK
+```
+
+### Step 3: Execute End-to-End Delivery Simulation via HTTP
+```bash
+python3 -c "
+import urllib.request, json
+# 1. Create Loop
+req = urllib.request.Request('http://127.0.0.1:8080/api/v1/loops', data=json.dumps({
+    'node_id': 'finance',
+    'brief_text': 'Create currency variance analysis view.',
+    'owner_email': 'sarah.controller@wallbox.com'
+}).encode(), headers={'Content-Type': 'application/json'})
+with urllib.request.urlopen(req) as resp:
+    res = json.loads(resp.read())
+    loop_id = res['loop_id']
+    assert res['current_state'] == 'WAIT_GATE_H1'
+    print('[PASS] Loop Initialized at Gate H1:', loop_id)
+
+# 2. Resolve Gate H1
+h1_req = urllib.request.Request(f'http://127.0.0.1:8080/api/v1/loops/{loop_id}/gates/h1/resolve', data=json.dumps({
+    'decision': 'approve', 'comment': 'Spec approved'
+}).encode(), headers={'Content-Type': 'application/json'})
+with urllib.request.urlopen(h1_req) as resp:
+    res_h1 = json.loads(resp.read())
+    assert res_h1['current_state'] == 'WAIT_GATE_H2'
+    print('[PASS] Gate H1 Approved -> Paused at Gate H2')
+
+# 3. Resolve Gate H2
+h2_req = urllib.request.Request(f'http://127.0.0.1:8080/api/v1/loops/{loop_id}/gates/h2/resolve', data=json.dumps({
+    'decision': 'approve', 'comment': 'Merge approved'
+}).encode(), headers={'Content-Type': 'application/json'})
+with urllib.request.urlopen(h2_req) as resp:
+    res_h2 = json.loads(resp.read())
+    assert res_h2['current_state'] == 'DONE'
+    print('[PASS] Gate H2 Approved -> DONE (Commit:', res_h2['close_commit_hash'], ')')
+"
+```
+
+### Step 4: Verify in Google Chrome Browser
+Open **`http://localhost:8080`** in Google Chrome:
+1. Submit a Finance brief.
+2. Confirm the visual FSM pipeline advances to `Gate H1 (Human)` with blue glow.
+3. Click `Approve`: Confirm the sandbox runs with 100% test pass rate and advances to `Gate H2 (Human)`.
+4. Click `Approve`: Confirm the loop reaches `DONE`, commits deliverables, and seals the WORM record.

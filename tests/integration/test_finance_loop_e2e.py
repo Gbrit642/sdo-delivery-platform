@@ -12,7 +12,6 @@ from agents.reviewer import review_node
 from agents.watcher import watch_node
 from harnesses.harness_node import spec_harness_node
 from storage.worm_audit import WormAuditWriter
-from storage.crypto_shredding import CryptoShredder
 from tools.github_client import GitHubClient
 from eval.evaluator import SDOAgentEvaluator
 
@@ -24,7 +23,6 @@ async def test_full_finance_delivery_lifecycle_e2e():
     auth = AgentGatewayAuth(auth_mode="local")
     github_client = GitHubClient(use_mock=True)
     audit_writer = WormAuditWriter(bucket_name=settings.gcs_worm_bucket, use_mock=True)
-    crypto_shredder = CryptoShredder(project_id=settings.project_id, use_mock=True)
 
     # 1. Initiator identity and raw brief
     initiator = auth.authenticate_token({
@@ -56,8 +54,7 @@ async def test_full_finance_delivery_lifecycle_e2e():
         s.close_commit_hash = merge_sha
         s.pull_request_url = pr.html_url
 
-        # WORM Seal with envelope crypto-shredding
-        encrypted_str = crypto_shredder.encrypt_user_payload(s.initiator.subject_id or "anon", {"brief": s.brief_raw})
+        # WORM Seal
         audit_key = await audit_writer.write_audit_record(
             node_id=s.node_id,
             loop_id=s.loop_id,
@@ -65,8 +62,7 @@ async def test_full_finance_delivery_lifecycle_e2e():
             intent_kind="LOOP_CLOSED_AND_SEALED",
             actor_email=s.initiator.user_email or "unknown",
             actor_type=s.initiator.actor_type,
-            raw_payload={"loop_id": s.loop_id, "commit": merge_sha},
-            encrypted_payload_str=encrypted_str,
+            raw_payload={"loop_id": s.loop_id, "commit": merge_sha, "brief": s.brief_raw},
         )
         s.worm_audit_record_id = audit_key
         return s
@@ -134,19 +130,3 @@ async def test_full_finance_delivery_lifecycle_e2e():
     assert score_card.aggregate_score >= 0.85
     assert score_card.gherkin_contract_score == 1.0
     assert score_card.sandbox_reliability_score == 1.0
-
-    # --- GDPR CRYPTO-SHREDDING VERIFICATION ---
-    # Decryption works before shredding
-    decrypted = crypto_shredder.decrypt_user_payload(
-        state.initiator.subject_id,
-        crypto_shredder.encrypt_user_payload(state.initiator.subject_id, {"data": "confidential"}),
-    )
-    assert decrypted["data"] == "confidential"
-
-    # Shred user keys
-    shred_success = crypto_shredder.shred_user_data(state.initiator.subject_id)
-    assert shred_success is True
-
-    # Decryption MUST fail after shredding
-    with pytest.raises(KeyError, match="Key for subject .* has been permanently destroyed"):
-        crypto_shredder.decrypt_user_payload(state.initiator.subject_id, "mock_payload")

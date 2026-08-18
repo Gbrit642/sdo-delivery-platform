@@ -40,8 +40,7 @@ terraform apply tfplan
 ### Deployed GCP Resources:
 1. **Cloud Run Service:** `sdo-adk-engine` (Serverless Control Plane and Web Dashboard).
 2. **Cloud Storage WORM Bucket:** `sdo-worm-audit-managed-agent-504409` (Object Retention / Bucket Lock).
-3. **Cloud KMS KeyRing & CryptoKey:** `sdo-keyring/sdo-gdpr-shredding-key` (GDPR Crypto-Shredding).
-4. **BigQuery Datasets:** `sdo_finance_demo` (sample tables) & `sdo_analytics` (Agent Analytics).
+3. **BigQuery Datasets:** `sdo_finance_demo` (sample tables) & `sdo_analytics` (Agent Analytics).
 
 ---
 
@@ -57,19 +56,6 @@ terraform apply tfplan
 ### Gate H2: Final Merge & Deploy Sign-Off
 - **Trigger:** Code compiles, sandbox test suite passes with 100% pass rate, and Reviewer signs off.
 - **Actions Available:**
-  - `[Approve Merge & Deploy]`: Squash-merges GitHub PR, creates semantic tag (`v1.0.x`), encrypts with Cloud KMS, and writes immutable record to WORM audit bucket.
+  - `[Approve Merge & Deploy]`: Squash-merges GitHub PR, creates semantic tag (`v1.0.x`), and writes immutable record to WORM audit bucket.
   - `[Request Changes]`: Re-routes to `IMPLEMENT` for code fixes.
   - `[Reject]`: Transitions loop to `CLOSED`.
-
----
-
-## 4. GDPR "Right to be Forgotten" Key Shredding
-
-When a customer or employee requests complete erasure of their data under GDPR Article 17:
-```python
-from storage.crypto_shredding import CryptoShredder
-
-shredder = CryptoShredder(project_id="managed-agent-504409")
-shredder.shred_user_data(subject_id="auth0|user_subject_id")
-```
-Once the key is destroyed, the user's data stored inside the immutable WORM bucket becomes mathematically irrecoverable ciphertext.

@@ -16,21 +16,20 @@ flowchart TD
     subgraph Plane2 ["Plane 2: Execution & ADK State Graph (gemini-3.7-flash)"]
         AGW --> GraphEngine["ADK 2.0 State Graph Engine"]
         
-        INTAKE["INTAKE"] --> SPECIFY["SPECIFY (Documental)"]
-        SPECIFY --> HARNESS["Two-Tier Spec Harness (AST + Critic)"]
-        HARNESS --> GATE_H1{{"GATE H1 (Human Spec Sign-Off)"}}
-        GATE_H1 --> DESIGN["DESIGN (Arquitecto)"]
-        DESIGN --> IMPLEMENT["IMPLEMENT (Implementer + Sandbox)"]
-        IMPLEMENT --> REVIEW["REVIEW (Reviewer QA)"]
-        REVIEW --> GATE_H2{{"GATE H2 (Final Merge Sign-Off)"}}
-        GATE_H2 --> CLOSE["CLOSE (GitHub Squash-Merge & Release)"]
-        CLOSE --> WATCH["WATCH (Day 30 Health Telemetry)"]
+        INTAKE["1. INTAKE"] --> SPECIFY["2. SPECIFY (Documental)"]
+        SPECIFY --> HARNESS["3. Two-Tier Spec Harness (AST + Critic)"]
+        HARNESS --> GATE_H1{{"Gate H1 (Human Spec Sign-Off)"}}
+        GATE_H1 --> DESIGN["4. DESIGN (Arquitecto)"]
+        DESIGN --> IMPLEMENT["5. IMPLEMENT (Implementer + Sandbox)"]
+        IMPLEMENT --> REVIEW["6. REVIEW (Reviewer QA)"]
+        REVIEW --> GATE_H2{{"Gate H2 (Final Merge Sign-Off)"}}
+        GATE_H2 --> CLOSE["7. CLOSE (GitHub Squash-Merge & Release)"]
+        CLOSE --> WATCH["8. WATCH (Day 30 Health Telemetry)"]
         WATCH --> DONE(["DONE (Terminal)"])
     end
 
-    subgraph Plane3 ["Plane 3: Storage, WORM Audit & GDPR Compliance"]
+    subgraph Plane3 ["Plane 3: Storage & WORM Audit Compliance"]
         CLOSE --> WORM["Cloud Storage Object Retention (Bucket Lock)"]
-        WORM --> KMS["Cloud KMS Envelope Encryption (GDPR Crypto-Shredding)"]
         GraphEngine --> BQ_ANALYTICS["BigQuery Agent Analytics (adk.dev)"]
         GraphEngine --> OTEL["Cloud Trace & Cloud Logging (OpenTelemetry)"]
     end
@@ -48,7 +47,7 @@ flowchart TD
   - `implementer`: Code/SQL synthesis and ephemeral sandbox runner.
   - `reviewer`: Code auditing, negative testing, and acceptance criteria verification.
   - `watcher`: Day 30 post-deployment query latency and SLA evaluation.
-  - `PolicyAuditorAgent`: SOC 2, GDPR, and scope compliance critic.
+  - `PolicyAuditorAgent`: SOC 2, GDPR data isolation, and scope compliance critic.
 
 ### 2.2 Deterministic State Graph Engine (`graphs/workflow.py`)
 - **100% Python Routing:** State graph edges and cyclic retries are strictly calculated in Python. No LLM decides state machine transitions.
@@ -63,6 +62,5 @@ flowchart TD
 ### 2.4 Ephemeral Managed Sandboxes (`tools/managed_sandbox.py`)
 - Executes generated code and `pytest` test suites in an isolated temporary container, preventing unconstrained host access.
 
-### 2.5 Plane 3 WORM Audit & GDPR Crypto-Shredding (`storage/`)
+### 2.5 Plane 3 WORM Audit (`storage/`)
 - Immutable audit records written to Cloud Storage Object Retention (`audit/{node}/{loop}/{seq:08d}/{intent_id}.json`).
-- Per-subject envelope encryption with Cloud KMS allows instant data anonymization via key destruction (GDPR "Right to be Forgotten").

@@ -14,7 +14,7 @@
 - **Two-Tier Quality Harness:** Tier 1 AST/Pydantic static parsing + Tier 2 `PolicyAuditorAgent` compliance critic.
 - **Governed BigQuery & GitHub Connectors:** BigQuery Managed MCP connector and GitHub client with offline mock mode.
 - **Ephemeral Managed Sandboxes:** Isolated Linux container runner executing `pytest` and `sqlfluff` in isolation.
-- **WORM Audit Trail & GDPR Crypto-Shredding:** Cloud Storage Object Retention (Bucket Lock) + Cloud KMS per-subject envelope encryption for instantaneous GDPR data erasure.
+- **WORM Audit Trail:** Cloud Storage Object Retention (Bucket Lock) for tamper-evident compliance.
 - **Observability & Analytics:** Cloud Trace (OpenTelemetry) + native BigQuery Agent Analytics plugin + Gemini Enterprise evaluation metrics.
 - **Infrastructure as Code:** 100% automated Terraform scripts ready to deploy in `managed-agent-504409`.
 
@@ -52,11 +52,11 @@ sdo-adk-engine/
 ├── agents/              # Gemini 3.7 Flash sub-agents (Documental, Arquitecto, Implementer, Reviewer, Watcher)
 ├── harnesses/           # Two-Tier Quality Harness (Tier 1 AST + Tier 2 Policy Auditor)
 ├── tools/               # BigQuery MCP, GitHub client, and Managed Agent Linux Sandbox
-├── storage/             # WORM audit trail writer and Cloud KMS GDPR crypto-shredding
+├── storage/             # WORM audit trail writer in Cloud Storage Object Retention
 ├── observability/       # OpenTelemetry Cloud Trace & BigQuery Agent Analytics plugin
 ├── eval/                # Gemini Enterprise custom evaluation metrics & benchmarks
 ├── web/                 # FastAPI REST API, Google Chat webhook, and interactive Web Dashboard
-├── terraform/           # GCP Infrastructure as Code (Cloud Run, WORM Bucket, KMS, BigQuery)
+├── terraform/           # GCP Infrastructure as Code (Cloud Run, WORM Bucket, BigQuery)
 ├── tests/               # Comprehensive unit and end-to-end integration test suites
 └── docs/                # Level 300 architecture, customer handover guide, and Google Chat setup
 ```
@@ -66,5 +66,4 @@ sdo-adk-engine/
 ## 🔒 Security, Compliance & Governance
 
 - **SOC 2 Type II:** All state transitions and human approvals produce cryptographically hashed immutable records in Cloud Storage Object Retention.
-- **GDPR Article 17 ("Right to be Forgotten"):** User PII in audit records is encrypted with per-subject Cloud KMS keys. Deleting the KMS key renders the record permanently undecryptable.
 - **Zero-Trust Access Control:** Agent Gateway validates Google Workspace OIDC tokens and verifies domain roles before allowing loop creation or gate resolution.

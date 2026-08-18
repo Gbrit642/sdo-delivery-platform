@@ -25,7 +25,6 @@ from agents.reviewer import review_node
 from agents.watcher import watch_node
 from harnesses.harness_node import spec_harness_node
 from storage.worm_audit import WormAuditWriter
-from storage.crypto_shredding import CryptoShredder
 from observability.analytics import BigQueryAgentAnalytics
 from tools.github_client import GitHubClient
 
@@ -49,7 +48,6 @@ app.add_middleware(
 # In-memory active loop storage & components
 active_loops: dict[str, LoopState] = {}
 audit_writer = WormAuditWriter(bucket_name=settings.gcs_worm_bucket, use_mock=True)
-crypto_shredder = CryptoShredder(project_id=settings.project_id, use_mock=True)
 analytics = BigQueryAgentAnalytics(project_id=settings.project_id, use_mock=True)
 github_client = GitHubClient(use_mock=True)
 gateway_auth = AgentGatewayAuth(auth_mode=settings.auth_mode)
@@ -84,9 +82,6 @@ def build_configured_graph() -> SDOStateGraph:
         state.pull_request_url = pr.html_url
 
         # Seal WORM audit record
-        encrypted_payload = crypto_shredder.encrypt_user_payload(
-            state.initiator.subject_id or "anon", {"brief": state.brief_raw, "spec": state.spec_content}
-        )
         audit_key = await audit_writer.write_audit_record(
             node_id=state.node_id,
             loop_id=state.loop_id,
@@ -94,8 +89,12 @@ def build_configured_graph() -> SDOStateGraph:
             intent_kind="LOOP_CLOSED_AND_SEALED",
             actor_email=state.initiator.user_email or "unknown",
             actor_type=state.initiator.actor_type,
-            raw_payload={"loop_id": state.loop_id, "commit": merge_sha},
-            encrypted_payload_str=encrypted_payload,
+            raw_payload={
+                "loop_id": state.loop_id,
+                "commit": merge_sha,
+                "brief": state.brief_raw,
+                "spec_id": f"SPEC-{state.node_id.upper()}-{state.loop_id[:8]}",
+            },
         )
         state.worm_audit_record_id = audit_key
         return state

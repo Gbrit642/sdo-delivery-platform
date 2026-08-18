@@ -8,11 +8,6 @@ output "worm_audit_bucket_name" {
   value       = google_storage_bucket.worm_audit_bucket.name
 }
 
-output "kms_crypto_key_id" {
-  description = "Full resource ID of the GDPR Crypto-Shredding KMS key"
-  value       = google_kms_crypto_key.gdpr_crypto_key.id
-}
-
 output "bigquery_finance_dataset" {
   description = "BigQuery Finance Demo Dataset ID"
   value       = google_bigquery_dataset.finance_demo.dataset_id

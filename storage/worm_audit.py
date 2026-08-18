@@ -23,7 +23,7 @@ class AuditEvent(BaseModel):
     actor_email: str
     actor_type: str
     state_snapshot_hash: str
-    payload_encrypted: str
+    payload_summary: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -36,7 +36,7 @@ class WormAuditWriter:
         self._mock_records: dict[str, AuditEvent] = {}
 
     def generate_object_key(self, node_id: str, loop_id: str, seq: int, event_id: str) -> str:
-        """Construct canonical WORM audit object key (ADR-0020)."""
+        """Construct canonical WORM audit object key."""
         return f"audit/{node_id}/{loop_id}/{seq:08d}/{event_id}.json"
 
     async def write_audit_record(
@@ -48,7 +48,6 @@ class WormAuditWriter:
         actor_email: str,
         actor_type: str,
         raw_payload: dict[str, Any],
-        encrypted_payload_str: str,
     ) -> str:
         """Compute SHA-256 hash and write immutable record."""
         # Calculate SHA256 integrity hash of raw payload
@@ -67,7 +66,7 @@ class WormAuditWriter:
             actor_email=actor_email,
             actor_type=actor_type,
             state_snapshot_hash=payload_hash,
-            payload_encrypted=encrypted_payload_str,
+            payload_summary=raw_payload,
         )
 
         self._mock_records[object_key] = audit_event

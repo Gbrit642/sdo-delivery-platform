@@ -22,18 +22,6 @@ variable "retention_period_seconds" {
   default     = 220752000
 }
 
-variable "kms_keyring_name" {
-  description = "Cloud KMS KeyRing name for GDPR Crypto-Shredding"
-  type        = string
-  default     = "sdo-keyring"
-}
-
-variable "kms_key_name" {
-  description = "Cloud KMS CryptoKey name for per-subject envelope encryption"
-  type        = string
-  default     = "sdo-gdpr-shredding-key"
-}
-
 variable "bq_dataset_id" {
   description = "BigQuery primary demo dataset"
   type        = string

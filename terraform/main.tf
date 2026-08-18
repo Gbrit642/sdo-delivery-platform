@@ -36,23 +36,7 @@ resource "google_storage_bucket" "worm_audit_bucket" {
   }
 }
 
-# 3. Cloud KMS KeyRing & CryptoKey for GDPR Envelope Crypto-Shredding
-resource "google_kms_key_ring" "sdo_keyring" {
-  name     = var.kms_keyring_name
-  location = var.region
-}
-
-resource "google_kms_crypto_key" "gdpr_crypto_key" {
-  name            = var.kms_key_name
-  key_ring        = google_kms_key_ring.sdo_keyring.id
-  rotation_period = "7776000s" # 90 days
-
-  lifecycle {
-    prevent_destroy = false
-  }
-}
-
-# 4. BigQuery Demo & Analytics Datasets
+# 3. BigQuery Demo & Analytics Datasets
 resource "google_bigquery_dataset" "finance_demo" {
   dataset_id                  = var.bq_dataset_id
   friendly_name               = "SDO Finance Demo Dataset"
@@ -69,7 +53,7 @@ resource "google_bigquery_dataset" "agent_analytics" {
   delete_contents_on_destroy  = true
 }
 
-# 5. Cloud Run Deployment for SDO Control Plane & Web Dashboard
+# 4. Cloud Run Deployment for SDO Control Plane & Web Dashboard
 resource "google_cloud_run_v2_service" "sdo_service" {
   name     = "sdo-adk-engine"
   location = var.region
