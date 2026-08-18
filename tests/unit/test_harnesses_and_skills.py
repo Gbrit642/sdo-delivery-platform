@@ -42,10 +42,15 @@ def test_skill_registry_loads_all_domains():
     assert "sales" in domains
     assert "firmware" in domains
     assert "marketing" in domains
+    assert "logistics" in domains
 
     finance_skill = registry.get_skill("finance")
     assert "sdo_finance_demo.invoices" in finance_skill.authorized_tables
     assert finance_skill.acceptance_criteria["min_unit_test_pass_rate"] == 100.0
+
+    logistics_skill = registry.get_skill("logistics")
+    assert "sdo_logistics_demo.inventory" in logistics_skill.authorized_tables
+    assert logistics_skill.acceptance_criteria["min_unit_test_pass_rate"] == 100.0
 
 
 def test_tier1_validates_valid_spec():

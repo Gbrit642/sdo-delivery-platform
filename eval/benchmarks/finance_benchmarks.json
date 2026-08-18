@@ -22,5 +22,21 @@
     "expected_tables": ["sdo_firmware_demo.charger_telemetry", "sdo_firmware_demo.error_logs"],
     "expected_metrics": ["target_sla_seconds", "telemetry_ingestion_delay_ms"],
     "target_pass_rate": 100.0
+  },
+  {
+    "benchmark_id": "BENCH-MKT-04",
+    "node_id": "marketing",
+    "brief": "Build a multi-touch campaign attribution view calculating CAC across Search and Social channels.",
+    "expected_tables": ["sdo_marketing_demo.campaign_events", "sdo_marketing_demo.user_acquisitions"],
+    "expected_metrics": ["target_sla_seconds", "cac_calculation_variance_pct"],
+    "target_pass_rate": 100.0
+  },
+  {
+    "benchmark_id": "BENCH-LOG-05",
+    "node_id": "logistics",
+    "brief": "Create warehouse dispatch SLA monitoring view tracking parts inventory turnover.",
+    "expected_tables": ["sdo_logistics_demo.inventory", "sdo_logistics_demo.warehouse_dispatch"],
+    "expected_metrics": ["target_sla_seconds", "dispatch_sla_adherence_pct"],
+    "target_pass_rate": 100.0
   }
 ]

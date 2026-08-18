@@ -1,0 +1,47 @@
+domain: logistics
+display_name: "Supply Chain & Manufacturing Operations"
+description: "Inventory turnover, warehouse dispatch SLAs, and parts supply forecasting."
+authorized_roles:
+  - "supply_chain_lead"
+  - "plant_manager"
+  - "finance_admin"
+
+authorized_tables:
+  - "sdo_logistics_demo.inventory"
+  - "sdo_logistics_demo.warehouse_dispatch"
+  - "sdo_logistics_demo.parts_catalog"
+
+intake_guidelines:
+  prompt_guidance: |
+    Ensure the brief specifies warehouse facilities, inventory parts categories, dispatch SLA targets (in hours), and turnover monitoring periods.
+  required_brief_keywords:
+    - "dispatch"
+    - "inventory"
+    - "turnover"
+  prohibited_scope:
+    - "Direct modification of manufacturing ERP supplier purchase orders"
+
+spec_validation_rules:
+  required_frontmatter_fields:
+    - "id"
+    - "title"
+    - "node_id"
+    - "created_at"
+    - "target_repository"
+  mandatory_metrics:
+    - "target_sla_seconds"
+    - "baseline_error_rate"
+    - "dispatch_sla_adherence_pct"
+  prohibited_sql_patterns:
+    - "DROP TABLE"
+    - "DELETE FROM"
+    - "TRUNCATE"
+
+acceptance_criteria:
+  min_unit_test_pass_rate: 100.0
+  min_test_coverage_pct: 85.0
+  max_query_cost_usd: 1.50
+  required_test_types:
+    - "unit"
+    - "sql_syntax_lint"
+    - "dispatch_sla_check"

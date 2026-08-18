@@ -27,6 +27,7 @@ from harnesses.harness_node import spec_harness_node
 from storage.worm_audit import WormAuditWriter
 from observability.analytics import BigQueryAgentAnalytics
 from tools.github_client import GitHubClient
+from registry.skill_registry import get_skill_registry
 
 logger = logging.getLogger("sdo.web")
 settings = get_settings()
@@ -118,14 +119,16 @@ class CreateLoopRequest(BaseModel):
     node_id: str = "finance"
     brief_text: str
     owner_email: str = "sarah.controller@wallbox.com"
-    roles: list[str] = Field(default_factory=lambda: ["financial_controller"])
-    department: str = "Finance"
+    roles: list[str] | None = None
+    department: str | None = None
 
 
 class ResolveGateRequest(BaseModel):
     decision: Literal["approve", "reject", "request_changes"]
     comment: str | None = None
     actor_email: str = "sarah.controller@wallbox.com"
+    roles: list[str] | None = None
+    department: str | None = None
 
 
 # --- REST API Endpoints ---
@@ -145,11 +148,23 @@ async def healthz():
 async def create_loop(req: CreateLoopRequest):
     """Launch a new SDO loop from a natural language brief."""
     loop_id = f"01KZZ{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+
+    assigned_roles = req.roles
+    if not assigned_roles:
+        registry = get_skill_registry()
+        try:
+            skill = registry.get_skill(req.node_id)
+            assigned_roles = list(skill.authorized_roles)
+        except Exception:
+            assigned_roles = ["financial_controller"]
+
+    assigned_dept = req.department or req.node_id.title()
+
     initiator = gateway_auth.authenticate_token(
         {
             "email": req.owner_email,
-            "roles": req.roles,
-            "department": req.department,
+            "roles": assigned_roles,
+            "department": assigned_dept,
             "sub": f"google|{req.owner_email}",
         }
     )
@@ -198,7 +213,21 @@ async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGate
         raise HTTPException(status_code=404, detail=f"Loop '{loop_id}' not found.")
 
     state = active_loops[loop_id]
-    actor = gateway_auth.authenticate_token({"email": req.actor_email, "roles": ["financial_controller"]})
+
+    assigned_roles = req.roles
+    if not assigned_roles:
+        registry = get_skill_registry()
+        try:
+            skill = registry.get_skill(state.node_id)
+            assigned_roles = list(skill.authorized_roles)
+        except Exception:
+            assigned_roles = ["financial_controller"]
+
+    actor = gateway_auth.authenticate_token({
+        "email": req.actor_email,
+        "roles": assigned_roles,
+        "department": req.department or state.initiator.department or state.node_id.title(),
+    })
 
     resolution = GateResolution(
         gate=gate,

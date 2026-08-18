@@ -74,6 +74,66 @@ def test_create_and_resolve_loop_api_flow(client: TestClient):
     assert h2_data["close_commit_hash"] is not None
 
 
+def test_dashboard_endpoint(client: TestClient):
+    """GET / returns 200 OK with HTML dashboard."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "Wallbox SDO" in resp.text
+
+
+@pytest.mark.parametrize("domain,email", [
+    ("finance", "sarah.controller@wallbox.com"),
+    ("sales", "sales.lead@wallbox.com"),
+    ("firmware", "firmware.eng@wallbox.com"),
+    ("marketing", "growth.lead@wallbox.com"),
+    ("logistics", "supply.lead@wallbox.com"),
+])
+def test_create_and_resolve_all_domains_api_flow(client: TestClient, domain: str, email: str):
+    """Test full loop creation and dual-gate resolution for all 5 domains via REST API without manual role passing."""
+    # 1. Create Loop without explicit roles
+    create_resp = client.post(
+        "/api/v1/loops",
+        json={
+            "node_id": domain,
+            "brief_text": f"Automated test deliverable brief for {domain}.",
+            "owner_email": email,
+        },
+    )
+    assert create_resp.status_code == 201
+    loop_data = create_resp.json()
+    loop_id = loop_data["loop_id"]
+    assert loop_data["current_state"] == "WAIT_GATE_H1"
+    assert loop_data["spec_content"] is not None
+
+    # 2. Resolve Gate H1
+    h1_resp = client.post(
+        f"/api/v1/loops/{loop_id}/gates/h1/resolve",
+        json={
+            "decision": "approve",
+            "comment": f"Spec approved for {domain}.",
+            "actor_email": email,
+        },
+    )
+    assert h1_resp.status_code == 200
+    h1_data = h1_resp.json()
+    assert h1_data["current_state"] == "WAIT_GATE_H2"
+
+    # 3. Resolve Gate H2
+    h2_resp = client.post(
+        f"/api/v1/loops/{loop_id}/gates/h2/resolve",
+        json={
+            "decision": "approve",
+            "comment": f"Merge approved for {domain}.",
+            "actor_email": email,
+        },
+    )
+    assert h2_resp.status_code == 200
+    h2_data = h2_resp.json()
+    assert h2_data["current_state"] == "DONE"
+    assert h2_data["close_commit_hash"] is not None
+    assert h2_data["worm_audit_record_id"] is not None
+
+
 def test_chat_webhook_flow(client: TestClient):
     """Test Google Chat Webhook message reception and card click response."""
     msg_resp = client.post(

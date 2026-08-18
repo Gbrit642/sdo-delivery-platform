@@ -30,17 +30,78 @@ Output must be well-structured Markdown."""
         logger.info("Arquitecto generating technical design for loop '%s'", state.loop_id)
 
         if not self.model_client:
-            # Deterministic template for offline execution
-            return f"""# Technical Design Document: {state.brief_raw[:50]}
+            # Deterministic template for offline execution tailored to the domain
+            domain_view_map = {
+                "finance": "sdo_finance_demo.weekly_revenue_variance",
+                "sales": "sdo_sales_demo.sales_pipeline_conversion",
+                "firmware": "sdo_firmware_demo.charger_telemetry_agg",
+                "marketing": "sdo_marketing_demo.campaign_attribution",
+                "logistics": "sdo_logistics_demo.inventory_turnover_view",
+            }
+            target_view = domain_view_map.get(state.node_id, f"sdo_{state.node_id}_demo.primary_view")
 
-## 1. Component Architecture
-- Ingress: BigQuery Scheduled Query / View
-- Execution Engine: Serverless Python transformation script
-- Output Destination: `sdo_{state.node_id}_demo.weekly_revenue_variance`
-
-## 2. BigQuery SQL Transformation
-```sql
-CREATE OR REPLACE VIEW `sdo_{state.node_id}_demo.weekly_revenue_variance` AS
+            if state.node_id == "sales":
+                sql_snippet = f"""CREATE OR REPLACE VIEW `{target_view}` AS
+SELECT
+    stage,
+    COUNT(opp_id) AS total_opportunities,
+    SUM(amount_eur) AS total_pipeline_eur,
+    ROUND(AVG(amount_eur), 2) AS avg_deal_size_eur,
+    CURRENT_TIMESTAMP() AS computed_at
+FROM `sdo_sales_demo.opportunities`
+GROUP BY stage;"""
+                test_plan = """- `test_stage_conversion_rate`: Validates stage-level deal aggregation.
+- `test_pii_masking_anonymization`: Validates PII mask filters on customer account names.
+- `test_sql_syntax_conformance`: Runs SQL syntax linter on view DDL."""
+            elif state.node_id == "firmware":
+                sql_snippet = f"""CREATE OR REPLACE VIEW `{target_view}` AS
+SELECT
+    charger_id,
+    firmware_version,
+    AVG(voltage) AS avg_voltage,
+    AVG(current_amperes) AS avg_current,
+    MAX(temperature_celsius) AS max_temperature,
+    CURRENT_TIMESTAMP() AS computed_at
+FROM `sdo_firmware_demo.charger_telemetry`
+GROUP BY charger_id, firmware_version;"""
+                test_plan = """- `test_telemetry_schema_validation`: Validates OCPP telemetry field structures.
+- `test_ocpp_compliance_check`: Asserts OCPP 1.6J/2.0.1 protocol rule conformance.
+- `test_telemetry_delay_metric`: Validates ingestion delay calculation."""
+            elif state.node_id == "marketing":
+                sql_snippet = f"""CREATE OR REPLACE VIEW `{target_view}` AS
+SELECT
+    c.channel,
+    COUNT(DISTINCT c.user_id_hashed) AS unique_conversions,
+    SUM(a.cac_usd) AS total_cac_usd,
+    ROUND(AVG(a.cac_usd), 2) AS avg_cac_usd,
+    CURRENT_TIMESTAMP() AS computed_at
+FROM `sdo_marketing_demo.campaign_events` AS c
+JOIN `sdo_marketing_demo.user_acquisitions` AS a
+    ON c.campaign_id = a.campaign_id
+WHERE c.event_type = 'Purchase'
+GROUP BY c.channel;"""
+                test_plan = """- `test_cac_calculation`: Validates CAC formula aggregation across channels.
+- `test_gdpr_cookie_consent_filter_check`: Asserts unhashed PII exclusion and GDPR consent filtering.
+- `test_attribution_window`: Validates multi-touch 30-day lookback window."""
+            elif state.node_id == "logistics":
+                sql_snippet = f"""CREATE OR REPLACE VIEW `{target_view}` AS
+SELECT
+    i.part_id,
+    i.warehouse_id,
+    i.quantity_on_hand,
+    i.reorder_point,
+    d.dispatch_time_hours,
+    d.sla_target_hours,
+    CASE WHEN d.dispatch_time_hours <= d.sla_target_hours THEN 1 ELSE 0 END AS on_time_flag,
+    CURRENT_TIMESTAMP() AS computed_at
+FROM `sdo_logistics_demo.inventory` AS i
+LEFT JOIN `sdo_logistics_demo.warehouse_dispatch` AS d
+    ON i.part_id = d.order_id;"""
+                test_plan = """- `test_inventory_turnover_ratio`: Validates warehouse parts stock turnover calculation.
+- `test_dispatch_sla_check`: Asserts dispatch duration against target SLA hours.
+- `test_reorder_threshold`: Validates safety stock alert thresholding."""
+            else:  # finance default
+                sql_snippet = f"""CREATE OR REPLACE VIEW `{target_view}` AS
 SELECT
     i.invoice_id,
     i.account_id,
@@ -49,16 +110,28 @@ SELECT
     COALESCE(e.rate, 1.0) AS exchange_rate,
     ROUND(i.amount * COALESCE(e.rate, 1.0), 2) AS amount_usd,
     CURRENT_TIMESTAMP() AS computed_at
-FROM `sdo_{state.node_id}_demo.invoices` AS i
-LEFT JOIN `sdo_{state.node_id}_demo.exchange_rates` AS e
+FROM `sdo_finance_demo.invoices` AS i
+LEFT JOIN `sdo_finance_demo.exchange_rates` AS e
     ON i.currency = e.target_currency AND e.base_currency = 'EUR'
-WHERE i.status = 'PAID';
+WHERE i.status = 'PAID';"""
+                test_plan = """- `test_currency_conversion_precision`: Validates rounding and exchange rate multiplication.
+- `test_null_exchange_rate_fallback`: Validates 1.0 multiplier fallback when rate is missing.
+- `test_sql_syntax_conformance`: Runs SQL syntax linter on generated view DDL."""
+
+            return f"""# Technical Design Document: {state.brief_raw[:50]}
+
+## 1. Component Architecture
+- Ingress: BigQuery Scheduled Query / View
+- Execution Engine: Serverless Python transformation script
+- Output Destination: `{target_view}`
+
+## 2. BigQuery SQL Transformation
+```sql
+{sql_snippet}
 ```
 
 ## 3. Ephemeral Sandbox Test Plan
-- `test_currency_conversion_precision`: Validates rounding and exchange rate multiplication.
-- `test_null_exchange_rate_fallback`: Validates 1.0 multiplier fallback when rate is missing.
-- `test_sql_syntax_conformance`: Runs SQL syntax linter on generated view DDL.
+{test_plan}
 """
 
         prompt = f"""Business Brief: {state.brief_raw}

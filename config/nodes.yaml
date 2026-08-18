@@ -36,5 +36,5 @@ nodes:
     description: "Inventory turnover, warehouse dispatch SLAs, and parts supply forecasting."
     authorized_roles: ["supply_chain_lead", "plant_manager"]
     primary_dataset: "sdo_logistics_demo"
-    default_skill: "finance"
+    default_skill: "logistics"
     target_repo: "wallbox/supply-chain"

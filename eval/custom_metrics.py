@@ -7,12 +7,12 @@ from harnesses.tier1_static_rules import Tier1StaticValidator
 from registry.skill_registry import get_skill_registry
 
 
-def score_gherkin_contract(spec_content: str | None) -> float:
+def score_gherkin_contract(spec_content: str | None, node_id: str = "finance") -> float:
     """Evaluate specification contract adherence (returns score between 0.0 and 1.0)."""
     if not spec_content:
         return 0.0
 
-    violations = Tier1StaticValidator.validate_spec(spec_content)
+    violations = Tier1StaticValidator.validate_spec(spec_content, node_id=node_id)
     if not violations:
         return 1.0
 

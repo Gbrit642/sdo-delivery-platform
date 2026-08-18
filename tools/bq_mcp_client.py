@@ -51,12 +51,89 @@ SAMPLE_DATASETS: dict[str, dict[str, list[TableColumn]]] = {
     },
     "sdo_sales_demo": {
         "opportunities": [
-            TableColumn(name="opp_id", data_type="STRING", mode="REQUIRED"),
-            TableColumn(name="account_name", data_type="STRING", mode="REQUIRED"),
-            TableColumn(name="amount_eur", data_type="NUMERIC", mode="REQUIRED"),
-            TableColumn(name="stage", data_type="STRING", mode="REQUIRED"),
-            TableColumn(name="close_date", data_type="DATE", mode="REQUIRED"),
-        ]
+            TableColumn(name="opp_id", data_type="STRING", mode="REQUIRED", description="Unique opportunity ID"),
+            TableColumn(name="account_name", data_type="STRING", mode="REQUIRED", description="Customer account name"),
+            TableColumn(name="amount_eur", data_type="NUMERIC", mode="REQUIRED", description="Estimated pipeline amount in EUR"),
+            TableColumn(name="stage", data_type="STRING", mode="REQUIRED", description="Sales stage: Prospecting, Qualified, Negotiation, Won, Lost"),
+            TableColumn(name="close_date", data_type="DATE", mode="REQUIRED", description="Expected close date"),
+        ],
+        "accounts": [
+            TableColumn(name="account_id", data_type="STRING", mode="REQUIRED", description="Account identifier"),
+            TableColumn(name="region", data_type="STRING", mode="REQUIRED", description="Sales region: EMEA, NA, APAC"),
+            TableColumn(name="tier", data_type="STRING", mode="REQUIRED", description="Enterprise, Commercial, SMB"),
+        ],
+        "lead_conversions": [
+            TableColumn(name="lead_id", data_type="STRING", mode="REQUIRED", description="Lead identifier"),
+            TableColumn(name="converted_flag", data_type="INT64", mode="REQUIRED", description="1 if converted, 0 otherwise"),
+            TableColumn(name="conversion_timestamp", data_type="TIMESTAMP", mode="REQUIRED", description="Conversion time"),
+        ],
+    },
+    "sdo_firmware_demo": {
+        "charger_telemetry": [
+            TableColumn(name="charger_id", data_type="STRING", mode="REQUIRED", description="Serial number of charger"),
+            TableColumn(name="firmware_version", data_type="STRING", mode="REQUIRED", description="Installed firmware version (e.g. 5.14.8)"),
+            TableColumn(name="voltage", data_type="FLOAT64", mode="REQUIRED", description="Operating line voltage"),
+            TableColumn(name="current_amperes", data_type="FLOAT64", mode="REQUIRED", description="Charging current in Amperes"),
+            TableColumn(name="temperature_celsius", data_type="FLOAT64", mode="REQUIRED", description="Internal hardware temperature"),
+            TableColumn(name="event_timestamp", data_type="TIMESTAMP", mode="REQUIRED", description="Telemetry recording timestamp"),
+        ],
+        "firmware_releases": [
+            TableColumn(name="release_id", data_type="STRING", mode="REQUIRED", description="Release identifier"),
+            TableColumn(name="version", data_type="STRING", mode="REQUIRED", description="Semantic firmware version"),
+            TableColumn(name="release_date", data_type="DATE", mode="REQUIRED", description="Public rollout date"),
+            TableColumn(name="status", data_type="STRING", mode="REQUIRED", description="GA, STAGING, DEPRECATED"),
+        ],
+        "error_logs": [
+            TableColumn(name="log_id", data_type="STRING", mode="REQUIRED", description="Log entry identifier"),
+            TableColumn(name="charger_id", data_type="STRING", mode="REQUIRED", description="Affected charger"),
+            TableColumn(name="error_code", data_type="STRING", mode="REQUIRED", description="OCPP error code"),
+            TableColumn(name="severity", data_type="STRING", mode="REQUIRED", description="CRITICAL, WARNING, INFO"),
+            TableColumn(name="log_timestamp", data_type="TIMESTAMP", mode="REQUIRED", description="Timestamp of occurrence"),
+        ],
+    },
+    "sdo_marketing_demo": {
+        "campaign_events": [
+            TableColumn(name="event_id", data_type="STRING", mode="REQUIRED", description="Event tracking identifier"),
+            TableColumn(name="campaign_id", data_type="STRING", mode="REQUIRED", description="Marketing campaign ID"),
+            TableColumn(name="channel", data_type="STRING", mode="REQUIRED", description="Acquisition channel: Search, Social, Affiliate"),
+            TableColumn(name="user_id_hashed", data_type="STRING", mode="REQUIRED", description="SHA-256 pseudonymized user ID"),
+            TableColumn(name="event_type", data_type="STRING", mode="REQUIRED", description="Click, Impression, Signup, Purchase"),
+            TableColumn(name="event_timestamp", data_type="TIMESTAMP", mode="REQUIRED", description="Event occurrence timestamp"),
+        ],
+        "user_acquisitions": [
+            TableColumn(name="acquisition_id", data_type="STRING", mode="REQUIRED", description="Acquisition identifier"),
+            TableColumn(name="campaign_id", data_type="STRING", mode="REQUIRED", description="Attributed campaign"),
+            TableColumn(name="cac_usd", data_type="NUMERIC", mode="REQUIRED", description="Calculated Customer Acquisition Cost in USD"),
+            TableColumn(name="converted_at", data_type="TIMESTAMP", mode="REQUIRED", description="Conversion timestamp"),
+        ],
+        "ad_spend": [
+            TableColumn(name="spend_id", data_type="STRING", mode="REQUIRED", description="Ad spend record ID"),
+            TableColumn(name="channel", data_type="STRING", mode="REQUIRED", description="Marketing channel"),
+            TableColumn(name="amount_usd", data_type="NUMERIC", mode="REQUIRED", description="Gross ad spend amount"),
+            TableColumn(name="spend_date", data_type="DATE", mode="REQUIRED", description="Date of spend"),
+        ],
+    },
+    "sdo_logistics_demo": {
+        "inventory": [
+            TableColumn(name="part_id", data_type="STRING", mode="REQUIRED", description="SKU / Part number"),
+            TableColumn(name="warehouse_id", data_type="STRING", mode="REQUIRED", description="Warehouse facility code"),
+            TableColumn(name="quantity_on_hand", data_type="INT64", mode="REQUIRED", description="Physical stock count"),
+            TableColumn(name="reorder_point", data_type="INT64", mode="REQUIRED", description="Safety threshold triggering replenishment"),
+            TableColumn(name="last_updated", data_type="TIMESTAMP", mode="REQUIRED", description="Last stock inventory check"),
+        ],
+        "warehouse_dispatch": [
+            TableColumn(name="dispatch_id", data_type="STRING", mode="REQUIRED", description="Fulfillment dispatch identifier"),
+            TableColumn(name="order_id", data_type="STRING", mode="REQUIRED", description="Sales / manufacturing order ID"),
+            TableColumn(name="dispatch_time_hours", data_type="FLOAT64", mode="REQUIRED", description="Fulfillment duration in hours"),
+            TableColumn(name="sla_target_hours", data_type="FLOAT64", mode="REQUIRED", description="SLA target in hours"),
+            TableColumn(name="status", data_type="STRING", mode="REQUIRED", description="ON_TIME, DELAYED, IN_TRANSIT"),
+        ],
+        "parts_catalog": [
+            TableColumn(name="part_id", data_type="STRING", mode="REQUIRED", description="Part identifier"),
+            TableColumn(name="part_name", data_type="STRING", mode="REQUIRED", description="Part component description"),
+            TableColumn(name="category", data_type="STRING", mode="REQUIRED", description="Electronics, Enclosure, Cable, Connector"),
+            TableColumn(name="unit_cost_eur", data_type="NUMERIC", mode="REQUIRED", description="BOM unit cost in EUR"),
+        ],
     },
 }
 

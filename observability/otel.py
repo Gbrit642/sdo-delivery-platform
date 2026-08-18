@@ -12,15 +12,23 @@ logger = logging.getLogger(__name__)
 try:
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
     provider = TracerProvider()
-    provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+    memory_exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(memory_exporter))
     trace.set_tracer_provider(provider)
     tracer = trace.get_tracer("sdo.adk.engine", "0.1.0")
 except ImportError:
+    memory_exporter = None
+
     # Graceful fallback mock tracer
     class MockSpan:
+        def __init__(self, name: str = "", attributes: dict[str, Any] | None = None):
+            self.name = name
+            self.attributes = attributes or {}
+
         def __enter__(self):
             return self
 
@@ -34,10 +42,32 @@ except ImportError:
             pass
 
     class MockTracer:
+        def __init__(self):
+            self.spans = []
+
         def start_as_current_span(self, name: str, attributes: dict[str, Any] | None = None):
-            return MockSpan()
+            span = MockSpan(name=name, attributes=attributes)
+            self.spans.append(span)
+            return span
 
     tracer = MockTracer()  # type: ignore
+
+
+def get_in_memory_spans() -> list[Any]:
+    """Retrieve captured OpenTelemetry spans for test verification."""
+    if memory_exporter is not None:
+        return list(memory_exporter.get_finished_spans())
+    if hasattr(tracer, "spans"):
+        return list(tracer.spans)
+    return []
+
+
+def clear_in_memory_spans() -> None:
+    """Clear recorded spans in memory exporter."""
+    if memory_exporter is not None:
+        memory_exporter.clear()
+    if hasattr(tracer, "spans"):
+        tracer.spans.clear()
 
 
 @contextmanager

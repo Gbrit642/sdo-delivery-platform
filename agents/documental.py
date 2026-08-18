@@ -44,21 +44,41 @@ You must output ONLY valid Markdown text with the YAML frontmatter."""
         """Query BigQuery schema context and generate specification."""
         logger.info("Documental generating specification for loop '%s'", state.loop_id)
 
-        # 1. Discover table schemas from BigQuery MCP
-        available_tables = await self.bq_client.list_tables()
+        # 1. Discover table schemas from BigQuery MCP for the specific domain
+        dataset_name = f"sdo_{state.node_id}_demo"
+        available_tables = await self.bq_client.list_tables(dataset_name)
+        if not available_tables:
+            available_tables = await self.bq_client.list_tables()
         table_context = []
         for t in available_tables[:3]:
-            meta = await self.bq_client.get_table_schema(t)
+            meta = await self.bq_client.get_table_schema(t, dataset_name)
             cols = [f"{c.name} ({c.data_type})" for c in meta.columns]
             table_context.append(f"Table '{t}': {', '.join(cols)}")
 
-        # 2. Get Domain Skill Guidelines
+        # 2. Get Domain Skill Guidelines and Mandatory Metrics
         registry = get_skill_registry()
         domain_guidance = registry.get_intake_guidance(state.node_id)
+        skill = registry.get_skill(state.node_id)
+        mandatory_metrics = skill.spec_validation_rules.get(
+            "mandatory_metrics",
+            ["target_sla_seconds", "baseline_error_rate"]
+        )
 
         if not self.model_client:
             # Deterministic template generation for offline execution and tests
             now_iso = datetime.now(timezone.utc).isoformat()
+            metrics_lines = []
+            for m in mandatory_metrics:
+                if "tolerance" in m or "pct" in m or "variance" in m:
+                    metrics_lines.append(f"- {m}: 0.05")
+                elif "seconds" in m or "delay" in m:
+                    metrics_lines.append(f"- {m}: 5.0")
+                elif "adherence" in m or "ratio" in m:
+                    metrics_lines.append(f"- {m}: 0.95")
+                else:
+                    metrics_lines.append(f"- {m}: 0.001")
+            metrics_block = "\n".join(metrics_lines)
+
             return f"""---
 id: "SPEC-{state.node_id.upper()}-{state.loop_id[:8]}"
 title: "Specification for {state.brief_raw[:40]}"
@@ -88,9 +108,7 @@ Domain guidance: {domain_guidance}
   Then records are flagged with zero data corruption
 
 ## Business Metrics
-- target_sla_seconds: 5.0
-- baseline_error_rate: 0.001
-- reconciliation_variance_tolerance_pct: 0.05
+{metrics_block}
 """
 
         # Live Gemini 3.7 Flash Call

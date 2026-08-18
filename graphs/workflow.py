@@ -7,6 +7,7 @@ import logging
 from typing import Any, Callable, Coroutine
 from graphs.state import LoopState
 from graphs.router import route_spec_harness, route_gate_h1, route_review, route_gate_h2
+from observability.otel import trace_agent_step
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,27 @@ class SDOStateGraph:
         if current not in self.nodes:
             raise ValueError(f"Node '{current}' is not registered in the state graph.")
 
-        # Execute node logic (support both async coroutines and sync functions)
+        # Execute node logic wrapped with OpenTelemetry tracing
         handler = self.nodes[current]
-        result = handler(state)
-        if inspect.isawaitable(result):
-            state = await result
-        else:
-            state = result  # type: ignore
+        with trace_agent_step(
+            node_name=current,
+            loop_id=state.loop_id,
+            attributes={
+                "sdo.domain": state.node_id,
+                "sdo.node_id": state.node_id,
+                "sdo.current_state": current,
+            },
+        ):
+            result = handler(state)
+            if inspect.isawaitable(result):
+                state = await result
+            else:
+                state = result  # type: ignore
+
+        # If handler explicitly transitioned the state, honor that transition
+        if state.current_state != current:
+            logger.info("Transitioned loop '%s' to '%s' (by node handler)", state.loop_id, state.current_state)
+            return state
 
         # Deterministic Next State Routing
         if current == "INTAKE":
