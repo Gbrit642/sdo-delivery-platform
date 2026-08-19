@@ -1,4 +1,4 @@
-# Live Demo Script & Walkthrough: Wallbox SDO Platform on GCP
+# Live Demo Script & Walkthrough: Autonomous SDO Platform on GCP
 
 This document provides a guided step-by-step demo script to showcase the Wallbox Software Delivery Optimization (SDO) Platform across its three interfaces:
 1. **Interactive Web Dashboard (Google Chrome)**
@@ -57,8 +57,8 @@ Open the live Cloud Run Web Dashboard:
 
 1. Open **Google Cloud Console $\to$ Gemini Enterprise $\to$ Apps** in project `managed-agent-504409`.
 2. Select either of the registered agents:
-   - **`Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)`**
-   - **`Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)`**
+   - **`Autonomous SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)`**
+   - **`Autonomous SDO - Option B (Vertex AI Agent Runtime Engine)`**
 3. Try any of these domain-specific test prompts:
 
 ### Finance Domain:

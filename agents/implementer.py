@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ImplementerAgent:
     """Agent that compiles code/SQL deliverables and executes automated tests in an isolated sandbox."""
 
-    SYSTEM_PROMPT = """You are Implementer, the Code & Delivery Synthesis Agent for Wallbox SDO Platform.
+    SYSTEM_PROMPT = """You are Implementer, the Code & Delivery Synthesis Agent for Enterprise SDO Platform.
 Your task is to synthesize verified code deliverables and execute unit tests in an isolated Linux sandbox.
 
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:

@@ -1,4 +1,4 @@
-# Level 300 Reference Architecture: Wallbox SDO Platform on GCP
+# Level 300 Reference Architecture: Autonomous SDO Platform on GCP
 
 ## 1. System Overview & 3-Plane Governance Model
 

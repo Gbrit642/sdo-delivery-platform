@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class ArquitectoAgent:
     """Agent responsible for producing technical designs, SQL transformations, and sandbox test plans."""
 
-    SYSTEM_PROMPT = """You are Arquitecto, the Technical Architecture and Design Agent for Wallbox SDO Platform.
+    SYSTEM_PROMPT = """You are Arquitecto, the Technical Architecture and Design Agent for Enterprise SDO Platform.
 Your task is to take an approved specification (spec.md) and business brief, and produce a comprehensive technical design (design.md).
 
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:

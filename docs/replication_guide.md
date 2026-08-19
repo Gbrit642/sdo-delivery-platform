@@ -1,6 +1,6 @@
-# Replication & Multi-Project Deployment Guide: Wallbox SDO Platform
+# Replication & Multi-Project Deployment Guide: Autonomous SDO Platform
 
-This guide explains how to replicate and deploy the entire Wallbox SDO platform into **any new Google Cloud Platform (GCP) project** in minutes.
+This guide explains how to replicate and deploy the entire Autonomous SDO platform into **any new Google Cloud Platform (GCP) project** in minutes.
 
 ---
 

@@ -1,4 +1,4 @@
-# Wallbox SDO Platform — Autonomous Software & Data Delivery Engine on Google Cloud Platform
+# Autonomous SDO Platform — Autonomous Software & Data Delivery Engine on Google Cloud Platform
 
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 [![Model](https://img.shields.io/badge/Model-Gemini%203.7%20Flash-green.svg)](https://cloud.google.com/vertex-ai)
@@ -136,33 +136,33 @@ flowchart TD
 
 ## 🚪 Agent Gateway & Dual-Identity Protocol
 
-Located in [`gateway/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway):
-- **OIDC & IAP Header Extraction ([`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py)):** Authenticates incoming user identities from Google Workspace or Identity-Aware Proxy (`X-Goog-Authenticated-User-Email`).
+Located in [`gateway/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway):
+- **OIDC & IAP Header Extraction ([`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py)):** Authenticates incoming user identities from Google Workspace or Identity-Aware Proxy (`X-Goog-Authenticated-User-Email`).
 - **Dual-Identity Classification:** Strictly separates **Human User Actions** from **Machine Agent Service Accounts** (`sa-sdo-{node}@managed-agent-504409.iam.gserviceaccount.com`).
-- **Domain RBAC & Table Allowlisting ([`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py)):** Intercepts initiation at `INTAKE`, matches roles against the domain manifest, and blocks unauthorized cross-tenant requests before LLM invocation.
+- **Domain RBAC & Table Allowlisting ([`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py)):** Intercepts initiation at `INTAKE`, matches roles against the domain manifest, and blocks unauthorized cross-tenant requests before LLM invocation.
 
 ---
 
 ## 🏛 Agent Registry in Gemini Enterprise
 
 Both agent deployment variants are registered in the **Google Discovery Engine / Gemini Enterprise Agent Catalog**:
-- **Option A (`11327987463052893149`):** `Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)` exposing the A2A Agent Card.
-- **Option B (`7628637833600983461`):** `Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)` executing ADK State Graphs directly on Vertex AI.
+- **Option A (`11327987463052893149`):** `Autonomous SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)` exposing the A2A Agent Card.
+- **Option B (`7628637833600983461`):** `Autonomous SDO - Option B (Vertex AI Agent Runtime Engine)` executing ADK State Graphs directly on Vertex AI.
 - **Extensible MCP Catalog:** Ready to register upcoming managed GCP MCPs and third-party enterprise tools (Salesforce, NetSuite, Notion).
 
 ---
 
 ## 📂 Multi-Domain Skill Registry & Security Policies
 
-Located in [`registry/skills/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills), 5 domain manifests govern the full delivery lifecycle:
+Located in [`registry/skills/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills), 5 domain manifests govern the full delivery lifecycle:
 
 | Domain | Manifest | Authorized BigQuery Tables | Mandatory Business Metrics | Prohibited Operations |
 |---|---|---|---|---|
-| **Finance** | [`finance.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/finance.yaml) | `sdo_finance_demo.invoices`, `billing_events`, `exchange_rates`, `revenue_summary` | `reconciliation_variance_tolerance_pct`, `unreconciled_invoice_amount_usd` | `DROP TABLE`, `DELETE FROM`, unhedged currency conversion |
-| **Sales** | [`sales.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/sales.yaml) | `sdo_sales_demo.opportunities`, `accounts`, `pipeline_snapshots` | `conversion_variance_pct`, `weighted_pipeline_revenue_usd` | `DROP TABLE`, plain-text PII export |
-| **Firmware** | [`firmware.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/firmware.yaml) | `sdo_firmware_demo.charger_telemetry`, `error_logs`, `firmware_versions` | `telemetry_ingestion_delay_ms`, `error_frequency_per_charge_point` | `DROP TABLE`, raw token leakage, unvalidated OCPP frames |
-| **Marketing** | [`marketing.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/marketing.yaml) | `sdo_marketing_demo.campaign_events`, `user_acquisitions`, `touchpoint_attribution` | `cac_calculation_variance_pct`, `first_touch_attribution_pct` | `DROP TABLE`, unhashed customer emails, unconsented analytics |
-| **Logistics** | [`logistics.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/logistics.yaml) | `sdo_logistics_demo.inventory`, `warehouse_dispatch`, `transit_events` | `dispatch_sla_compliance_pct`, `inventory_turnover_ratio` | `DROP TABLE`, manual stock override |
+| **Finance** | [`finance.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/finance.yaml) | `sdo_finance_demo.invoices`, `billing_events`, `exchange_rates`, `revenue_summary` | `reconciliation_variance_tolerance_pct`, `unreconciled_invoice_amount_usd` | `DROP TABLE`, `DELETE FROM`, unhedged currency conversion |
+| **Sales** | [`sales.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/sales.yaml) | `sdo_sales_demo.opportunities`, `accounts`, `pipeline_snapshots` | `conversion_variance_pct`, `weighted_pipeline_revenue_usd` | `DROP TABLE`, plain-text PII export |
+| **Firmware** | [`firmware.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/firmware.yaml) | `sdo_firmware_demo.charger_telemetry`, `error_logs`, `firmware_versions` | `telemetry_ingestion_delay_ms`, `error_frequency_per_charge_point` | `DROP TABLE`, raw token leakage, unvalidated OCPP frames |
+| **Marketing** | [`marketing.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/marketing.yaml) | `sdo_marketing_demo.campaign_events`, `user_acquisitions`, `touchpoint_attribution` | `cac_calculation_variance_pct`, `first_touch_attribution_pct` | `DROP TABLE`, unhashed customer emails, unconsented analytics |
+| **Logistics** | [`logistics.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills/logistics.yaml) | `sdo_logistics_demo.inventory`, `warehouse_dispatch`, `transit_events` | `dispatch_sla_compliance_pct`, `inventory_turnover_ratio` | `DROP TABLE`, manual stock override |
 
 ---
 
@@ -212,8 +212,8 @@ All process deliverables are stored in a structured hierarchy in **Google Cloud 
 
 ### 1. Install Dependencies
 ```bash
-git clone https://github.com/Gbrit642/wallbox-sdo-platform.git
-cd wallbox-sdo-platform
+git clone https://github.com/Gbrit642/sdo-delivery-platform.git
+cd sdo-delivery-platform
 pip install -e ".[dev]"
 ```
 

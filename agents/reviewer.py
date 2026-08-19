@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ReviewerAgent:
     """Agent that audits code quality, test suite execution results, and specification conformance."""
 
-    SYSTEM_PROMPT = """You are Reviewer, the Quality Assurance Agent for Wallbox SDO Platform.
+    SYSTEM_PROMPT = """You are Reviewer, the Quality Assurance Agent for Enterprise SDO Platform.
 Your task is to audit deliverables, verify 100% test pass rates, and prepare non-technical sign-off summaries.
 
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:

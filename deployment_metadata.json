@@ -3,7 +3,7 @@
   "project_id": "managed-agent-504409",
   "region": "europe-west1",
   "service_name": "sdo-adk-engine",
-  "agent_name": "Wallbox SDO Delivery Platform",
+  "agent_name": "Autonomous SDO Delivery Platform",
   "agent_card_url": "https://sdo-adk-engine-managed-agent-504409.europe-west1.run.app/a2a/app/.well-known/agent-card.json",
   "model": "gemini-3.7-flash",
   "registration_type": "a2a",

@@ -78,7 +78,7 @@ def test_dashboard_endpoint(client: TestClient):
     """GET / returns 200 OK with HTML dashboard."""
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "Wallbox SDO" in resp.text
+    assert "SDO" in resp.text
 
 
 @pytest.mark.parametrize("domain,email", [

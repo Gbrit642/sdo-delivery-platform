@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sdo-adk-engine"
 version = "0.1.0"
-description = "Wallbox SDO Platform on Google Cloud Platform (ADK 2.0 Engine)"
+description = "Autonomous SDO Platform on Google Cloud Platform (ADK 2.0 Engine)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

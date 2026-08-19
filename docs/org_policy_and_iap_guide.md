@@ -77,7 +77,7 @@ flowchart LR
 ```
 
 #### Terraform Provisioning:
-The Terraform file [`terraform/iap_load_balancer.tf`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/terraform/iap_load_balancer.tf) configures:
+The Terraform file [`terraform/iap_load_balancer.tf`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/terraform/iap_load_balancer.tf) configures:
 1. **Serverless NEG:** `google_compute_region_network_endpoint_group.serverless_neg` pointing to Cloud Run.
 2. **Backend Service with IAP:** `google_compute_backend_service.iap_backend` with `iap.enabled = true`.
 3. **IAP Service Account Invoker:** Grants `roles/run.invoker` to `serviceAccount:service-<PROJECT_NUMBER>@gcp-sa-iap.iam.gserviceaccount.com`.
@@ -87,7 +87,7 @@ When IAP is enabled, Google passes:
 - `X-Goog-Authenticated-User-Email`: e.g. `accounts.google.com:sarah.controller@wallbox.com`
 - `X-Goog-Iap-Jwt-Assertion`: Cryptographically signed JWT token
 
-The application automatically extracts this in [`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py) and [`web/app.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/web/app.py) to authenticate the user and bind their domain RBAC roles.
+The application automatically extracts this in [`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py) and [`web/app.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/web/app.py) to authenticate the user and bind their domain RBAC roles.
 
 ---
 

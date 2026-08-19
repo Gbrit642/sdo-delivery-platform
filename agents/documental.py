@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class DocumentalAgent:
     """Agent responsible for translating business briefs into formal Gherkin specifications."""
 
-    SYSTEM_PROMPT = """You are Documental, the specialized Specification Authoring Agent for Wallbox SDO Platform.
+    SYSTEM_PROMPT = """You are Documental, the specialized Specification Authoring Agent for Enterprise SDO Platform.
 Your task is to transform a business brief into a rigorous, complete specification document (spec.md).
 
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:
