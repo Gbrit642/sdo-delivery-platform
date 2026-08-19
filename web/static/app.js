@@ -12,6 +12,8 @@ const PIPELINE_NODES = [
 document.addEventListener("DOMContentLoaded", () => {
     setupTabListeners();
     setupForm();
+    setupPathSelector();
+    setupTradeoffEvaluator();
     setupGateButtons();
 });
 
@@ -24,8 +26,86 @@ function setupTabListeners() {
             btn.classList.add("active");
             const targetId = btn.getAttribute("data-tab");
             document.getElementById(targetId).classList.add("active");
+
+            if (targetId === "tab-catalog" && currentLoopId) {
+                fetchAndRenderArtifacts(currentLoopId);
+            }
         });
     });
+}
+
+function setupPathSelector() {
+    const directRadio = document.getElementById("path-direct");
+    const multiRadio = document.getElementById("path-multi-agent");
+    const cards = document.querySelectorAll(".path-card");
+
+    cards.forEach(card => {
+        card.addEventListener("click", () => {
+            cards.forEach(c => {
+                c.classList.remove("selected");
+                c.style.borderColor = "#dadce0";
+                c.style.background = "white";
+            });
+            card.classList.add("selected");
+            card.style.borderColor = "#1a73e8";
+            card.style.background = "#e8f0fe";
+        });
+    });
+}
+
+function setupTradeoffEvaluator() {
+    const btn = document.getElementById("btn-eval-tradeoff");
+    btn.addEventListener("click", async () => {
+        const briefText = document.getElementById("brief_text").value;
+        const nodeId = document.getElementById("node_id").value;
+        btn.disabled = true;
+        btn.textContent = "Analyzing...";
+
+        try {
+            const resp = await fetch("/api/v1/tradeoffs/evaluate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ brief_text: briefText, node_id: nodeId })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                renderTradeoffBox(data);
+            }
+        } catch (err) {
+            console.error("Failed to evaluate trade-off:", err);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "📊 Compare Pros & Cons";
+        }
+    });
+}
+
+function renderTradeoffBox(data) {
+    const box = document.getElementById("tradeoff-box");
+    box.style.display = "block";
+    
+    document.getElementById("tradeoff-rec-title").textContent = 
+        `💡 AI Recommendation: ${data.recommended_path === 'direct_connector_automation' ? '⚡ Direct Connector Automation' : '🤖 Multi-Agent Software Development'}`;
+    document.getElementById("tradeoff-rec-rationale").textContent = data.recommendation_rationale;
+
+    const directPros = document.getElementById("direct-pros");
+    directPros.innerHTML = data.direct_connector_option.pros.map(p => `<li>✓ ${p}</li>`).join("");
+    const directCons = document.getElementById("direct-cons");
+    directCons.innerHTML = data.direct_connector_option.cons.map(c => `<li>• ${c}</li>`).join("");
+
+    const agentPros = document.getElementById("agent-pros");
+    agentPros.innerHTML = data.multi_agent_option.pros.map(p => `<li>✓ ${p}</li>`).join("");
+    const agentCons = document.getElementById("agent-cons");
+    agentCons.innerHTML = data.multi_agent_option.cons.map(c => `<li>• ${c}</li>`).join("");
+
+    // Auto-select recommended radio
+    if (data.recommended_path === "direct_connector_automation") {
+        document.getElementById("path-direct").checked = true;
+        document.getElementById("path-direct").parentElement.click();
+    } else {
+        document.getElementById("path-multi-agent").checked = true;
+        document.getElementById("path-multi-agent").parentElement.click();
+    }
 }
 
 function setupForm() {
@@ -39,6 +119,7 @@ function setupForm() {
         const nodeId = document.getElementById("node_id").value;
         const ownerEmail = document.getElementById("owner_email").value;
         const briefText = document.getElementById("brief_text").value;
+        const deliveryPath = document.querySelector('input[name="delivery_path"]:checked').value;
 
         try {
             const resp = await fetch("/api/v1/loops", {
@@ -47,7 +128,8 @@ function setupForm() {
                 body: JSON.stringify({
                     node_id: nodeId,
                     owner_email: ownerEmail,
-                    brief_text: briefText
+                    brief_text: briefText,
+                    delivery_path: deliveryPath
                 })
             });
 
@@ -110,6 +192,49 @@ async function resolveActiveGate(decision) {
     }
 }
 
+async function fetchAndRenderArtifacts(loopId) {
+    try {
+        const resp = await fetch(`/api/v1/loops/${loopId}/artifacts`);
+        if (resp.ok) {
+            const artifacts = await resp.json();
+            const listEl = document.getElementById("catalog-list");
+            if (artifacts.length === 0) {
+                listEl.innerHTML = "<p style='color: #70757a;'>No artifacts cataloged for this loop yet.</p>";
+                return;
+            }
+
+            let html = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; background: white; border: 1px solid #e0e0e0; border-radius: 6px;">
+                <thead>
+                    <tr style="background: #f1f3f4; text-align: left;">
+                        <th style="padding: 8px; border-bottom: 1px solid #dadce0;">Artifact Name</th>
+                        <th style="padding: 8px; border-bottom: 1px solid #dadce0;">Type</th>
+                        <th style="padding: 8px; border-bottom: 1px solid #dadce0;">GCS Partitioned Path</th>
+                        <th style="padding: 8px; border-bottom: 1px solid #dadce0;">Size</th>
+                        <th style="padding: 8px; border-bottom: 1px solid #dadce0;">SHA-256 Digest</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            artifacts.forEach(a => {
+                html += `
+                <tr style="border-bottom: 1px solid #f1f3f4;">
+                    <td style="padding: 8px; font-weight: bold; color: #1a73e8;">${a.artifact_name}</td>
+                    <td style="padding: 8px;"><span class="badge" style="background: #e8f0fe; color: #1a73e8; font-size: 11px;">${a.artifact_type}</span></td>
+                    <td style="padding: 8px; font-family: monospace; color: #3c4043;">${a.gcs_uri}</td>
+                    <td style="padding: 8px;">${a.size_bytes} B</td>
+                    <td style="padding: 8px; font-family: monospace; color: #5f6368;" title="${a.content_sha256}">${a.content_sha256.substring(0, 16)}...</td>
+                </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            listEl.innerHTML = html;
+        }
+    } catch (err) {
+        console.error("Failed to fetch artifacts:", err);
+    }
+}
+
 function renderLoopView(state) {
     document.getElementById("loop-view").style.display = "block";
     document.getElementById("view-loop-id").textContent = `Loop: ${state.loop_id}`;
@@ -146,7 +271,7 @@ function renderLoopView(state) {
     } else if (currentState === "WAIT_GATE_H2") {
         gatePanel.style.display = "flex";
         document.getElementById("gate-title").textContent = "Gate H2: Final Merge & Deploy Sign-Off";
-        document.getElementById("gate-desc").textContent = "Review the sandbox test report (100% pass rate) and pull request. Approve to squash-merge and deploy.";
+        document.getElementById("gate-desc").textContent = "Review the sandbox test report (100% pass rate) and deliverables. Approve to squash-merge and deploy.";
     } else {
         gatePanel.style.display = "none";
     }
@@ -181,9 +306,12 @@ function renderLoopView(state) {
 
     // WORM Audit & Telemetry
     const auditInfo = {
+        delivery_path: state.delivery_path,
+        tradeoff_analysis: state.tradeoff_analysis,
         worm_audit_record_id: state.worm_audit_record_id || "Pending Gate H2 seal",
         close_commit_hash: state.close_commit_hash || "Not merged yet",
         pull_request_url: state.pull_request_url || "Not created yet",
+        gcs_artifact_uris: state.gcs_artifact_uris,
         retry_counts: state.retry_counts,
         initiator: state.initiator,
         watch_telemetry: state.watch_telemetry_results

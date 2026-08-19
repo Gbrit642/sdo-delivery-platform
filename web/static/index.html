@@ -13,7 +13,7 @@
     <header class="app-header">
         <div class="header-left">
             <div class="logo-badge">⚡ Wallbox SDO</div>
-            <span class="header-sub">Software Delivery Optimization Platform</span>
+            <span class="header-sub">Autonomous Delivery Platform on Google Cloud</span>
         </div>
         <div class="header-right">
             <span class="badge badge-gcp">GCP: managed-agent-504409</span>
@@ -41,7 +41,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="owner_email">Domain Owner (Google Workspace OIDC)</label>
+                        <label for="owner_email">Domain Owner (Google Workspace / IAP)</label>
                         <input type="email" id="owner_email" value="sarah.controller@wallbox.com" required>
                     </div>
                 </div>
@@ -49,6 +49,44 @@
                 <div class="form-group">
                     <label for="brief_text">Change Brief / Business Requirement</label>
                     <textarea id="brief_text" rows="3" placeholder="e.g. Create a weekly currency variance analysis view in BigQuery comparing EUR invoices against USD payments with tolerance checking." required>Create a weekly currency variance analysis view in BigQuery comparing EUR invoices against USD payments with tolerance checking.</textarea>
+                </div>
+
+                <!-- Path Selection & Trade-Off Matrix -->
+                <div class="form-group path-selector-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin-bottom: 0;"><strong>Delivery Execution Path</strong></label>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-eval-tradeoff">📊 Compare Pros & Cons</button>
+                    </div>
+                    <div class="path-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <label class="path-card" style="border: 1px solid #dadce0; border-radius: 8px; padding: 12px; cursor: pointer;">
+                            <input type="radio" name="delivery_path" value="direct_connector_automation" id="path-direct">
+                            <strong>⚡ Direct Connector Automation</strong>
+                            <p style="font-size: 12px; color: #5f6368; margin-top: 4px;">Direct queries via Managed Connectors (BigQuery, Salesforce, NetSuite). Fast (<5s), $0 server compute, retains full Gate H1/H2.</p>
+                        </label>
+                        <label class="path-card selected" style="border: 1px solid #1a73e8; border-radius: 8px; padding: 12px; cursor: pointer; background: #e8f0fe;">
+                            <input type="radio" name="delivery_path" value="multi_agent_software_dev" id="path-multi-agent" checked>
+                            <strong>🤖 Multi-Agent Software Development</strong>
+                            <p style="font-size: 12px; color: #1a73e8; margin-top: 4px;">Full ADK State Graph: Gherkin specs, architectural design, custom Python code, Linux sandbox pytest with 100% pass guarantee.</p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Live Trade-Off Comparison Box (Expandable) -->
+                <div id="tradeoff-box" style="display: none; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <h3 style="margin-top: 0; font-size: 15px;" id="tradeoff-rec-title">💡 Trade-Off Analysis & AI Recommendation</h3>
+                    <p id="tradeoff-rec-rationale" style="font-size: 13px; color: #3c4043; line-height: 1.4;"></p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+                        <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px;">
+                            <h4 style="margin: 0 0 6px 0; color: #137333;">⚡ Direct Connector Automation</h4>
+                            <ul id="direct-pros" style="font-size: 12px; padding-left: 18px; margin: 0 0 8px 0; color: #1e8e3e;"></ul>
+                            <ul id="direct-cons" style="font-size: 12px; padding-left: 18px; margin: 0; color: #d93025;"></ul>
+                        </div>
+                        <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px;">
+                            <h4 style="margin: 0 0 6px 0; color: #1a73e8;">🤖 Multi-Agent Development</h4>
+                            <ul id="agent-pros" style="font-size: 12px; padding-left: 18px; margin: 0 0 8px 0; color: #1a73e8;"></ul>
+                            <ul id="agent-cons" style="font-size: 12px; padding-left: 18px; margin: 0; color: #d93025;"></ul>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="btn-launch">
@@ -111,6 +149,7 @@
                 <button class="tab-btn" data-tab="tab-design">Technical Design (design.md)</button>
                 <button class="tab-btn" data-tab="tab-code">Code & SQL Deliverables</button>
                 <button class="tab-btn" data-tab="tab-sandbox">Sandbox Test Reports</button>
+                <button class="tab-btn" data-tab="tab-catalog">GCS & BigQuery Artifacts</button>
                 <button class="tab-btn" data-tab="tab-audit">WORM Audit & Telemetry</button>
             </div>
 
@@ -129,6 +168,13 @@
             <div class="tab-content" id="tab-sandbox">
                 <div class="sandbox-metrics" id="sandbox-metrics-summary"></div>
                 <pre><code id="content-sandbox">No sandbox tests executed yet.</code></pre>
+            </div>
+
+            <div class="tab-content" id="tab-catalog">
+                <div id="catalog-table-container">
+                    <p style="color: #5f6368; font-size: 13px;">Process deliverables indexed in BigQuery (<code>sdo_analytics.process_artifacts</code>) and stored in Cloud Storage Object Retention:</p>
+                    <div id="catalog-list" style="margin-top: 12px;"></div>
+                </div>
             </div>
 
             <div class="tab-content" id="tab-audit">

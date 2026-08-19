@@ -44,11 +44,16 @@ class LoopState(BaseModel):
     initiator: ActorIdentity
     brief_raw: str
 
+    # Delivery Path Selection (Direct Connector Automation vs Multi-Agent Software Development)
+    delivery_path: Literal["direct_connector_automation", "multi_agent_software_dev"] = "multi_agent_software_dev"
+    tradeoff_analysis: dict[str, Any] | None = None
+
     # Plane 2: Deliverables and Generated Artifacts
     spec_content: str | None = None
     design_content: str | None = None
     code_artifacts: dict[str, str] = Field(default_factory=dict)  # filename -> file content
     test_results: dict[str, Any] = Field(default_factory=dict)
+    gcs_artifact_uris: dict[str, str] = Field(default_factory=dict)  # artifact_type -> gs://... URI
 
     # State Tracking & Deterministic Retries (charged per destination state)
     current_state: str = "INTAKE"

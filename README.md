@@ -4,11 +4,11 @@
 [![Model](https://img.shields.io/badge/Model-Gemini%203.7%20Flash-green.svg)](https://cloud.google.com/vertex-ai)
 [![Framework](https://img.shields.io/badge/Framework-Google%20ADK%202.0-orange.svg)](https://adk.dev)
 [![Compliance](https://img.shields.io/badge/Compliance-SOC%202%20Type%20II%20%7C%20GDPR%20WORM-purple.svg)](https://cloud.google.com/storage/docs/bucket-lock)
-[![Tests](https://img.shields.io/badge/Tests-43%2F43%20Passed%20(100%25)-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-47%2F47%20Passed%20(100%25)-brightgreen.svg)](tests/)
 [![Eval Score](https://img.shields.io/badge/Evaluation-1.00%20%2F%201.00-brightgreen.svg)](eval/)
 
 > **Wallbox Software Delivery Optimization (SDO) Platform**  
-> An enterprise-grade, human-supervised multi-agent system built on **Google Cloud Platform (GCP)**. It automates data engineering, firmware telemetry analysis, commercial reporting, marketing attribution, and supply-chain logistics workflows using **Gemini 3.7 Flash** and **Google ADK 2.0 State Graphs**.
+> An enterprise-grade, human-supervised delivery platform built on **Google Cloud Platform (GCP)**. It empowers non-technical business domain owners (Finance, Sales, Firmware, Marketing, Logistics) to automate workflows using **Gemini 3.7 Flash**, **Google ADK 2.0 State Graphs**, and **Managed GCP & Enterprise MCP Connectors**.
 
 ---
 
@@ -16,31 +16,32 @@
 1. [Executive Summary & Core Highlights](#-executive-summary--core-highlights)
 2. [Level 300 GCP Reference Architecture](#-level-300-gcp-reference-architecture)
 3. [3-Plane Governance Model](#-3-plane-governance-model)
-4. [Multi-Domain Skill Registry (5 Domains)](#-multi-domain-skill-registry-5-domains)
-5. [Deterministic State Graph & Human Gates](#-deterministic-state-graph--human-gates)
-6. [Governed Tooling & Ephemeral Sandboxes](#-governed-tooling--ephemeral-sandboxes)
-7. [Observability, BigQuery Analytics & WORM Audit](#-observability-bigquery-analytics--worm-audit)
-8. [Gemini Enterprise Integration (Option A & Option B)](#-gemini-enterprise-integration)
-9. [Quickstart & Local Verification](#-quickstart--local-verification)
-10. [1-Click Project Replication Guide (Any GCP Project)](#-1-click-project-replication-guide)
-11. [Live Demo Runbook](#-live-demo-runbook)
-12. [Repository Structure](#-repository-structure)
+4. [Agent Gateway & Dual-Identity Protocol](#-agent-gateway--dual-identity-protocol)
+5. [Agent Registry in Gemini Enterprise](#-agent-registry-in-gemini-enterprise)
+6. [Multi-Domain Skill Registry & Security Policies](#-multi-domain-skill-registry--security-policies)
+7. [Intelligent Path Selection: Direct Connector vs. Multi-Agent](#-intelligent-path-selection)
+8. [GCS Structured Artifact Storage & BigQuery Catalog](#-gcs-structured-artifact-storage--bigquery-catalog)
+9. [Two-Tier Quality Harness & Ephemeral Sandboxes](#-two-tier-quality-harness--ephemeral-sandboxes)
+10. [Observability & WORM Audit Substrate](#-observability--worm-audit-substrate)
+11. [Quickstart & Test Verification](#-quickstart--test-verification)
+12. [1-Click Multi-Project Replication Guide](#-1-click-multi-project-replication-guide)
+13. [Repository Structure](#-repository-structure)
 
 ---
 
 ## ⚡ Executive Summary & Core Highlights
 
-The Wallbox SDO Platform eliminates manual software and data delivery bottlenecks while maintaining strict corporate governance:
-
-- **Gemini 3.7 Flash Reasoning Engine:** 2,000,000 token context window, structured JSON synthesis, sub-second latency.
-- **100% Deterministic ADK 2.0 State Graphs:** State machine transitions and cyclic retry budgets ($N=3$) are calculated strictly in Python. Zero LLM routing.
-- **Scale-to-Zero Human Governance:** Human approval gates (**Gate H1** for specifications, **Gate H2** for deployment) pause compute at $0 idle cost without session timeout crashes.
-- **Two-Tier Quality Harness:** Tier 1 static AST/regex rules + Tier 2 `PolicyAuditorAgent` verifying SOC 2, GDPR, and scope boundaries before human review.
-- **Multi-Domain Skill Registry:** Modular YAML manifests (`finance.yaml`, `sales.yaml`, `firmware.yaml`, `marketing.yaml`, `logistics.yaml`) governing Intake, Spec Policies, and Sandbox Acceptance Criteria.
-- **Governed BigQuery MCP & GitHub VCS:** First-party schema introspection on BigQuery datasets and automated Pull Request squash-merging with semantic release tagging (`v1.0.x`).
-- **Ephemeral Managed Linux Sandbox:** Isolated container execution running `pytest` and `sqlfluff` with 100% test pass verification.
-- **WORM Audit Trail:** Cloud Storage Object Retention (Bucket Lock in WORM mode) storing tamper-evident SHA-256 state snapshots.
-- **Dual Gemini Enterprise Deployment:** Supports both **Cloud Run A2A Protocol** (Option A) and **Vertex AI Agent Runtime Reasoning Engine** (Option B).
+- **Gemini 3.7 Flash Reasoning Engine:** 2,000,000 token context window, eliminating legacy AWS token truncation.
+- **100% Deterministic ADK 2.0 State Graphs:** State transitions and cyclic retry budgets ($N=3$) are calculated strictly in Python. Zero LLM routing.
+- **Agent Gateway:** Inspects caller permissions and Google Workspace / IAP identity upfront, enforcing domain RBAC and separating Human from Machine identities.
+- **Agent Registry:** Manages registered agents in Gemini Enterprise, cataloging A2A bridges and upcoming managed GCP / enterprise MCPs (Salesforce, NetSuite, Notion).
+- **Multi-Domain Skill Registry (5 Domains):** Modular YAML manifests (`finance.yaml`, `sales.yaml`, `firmware.yaml`, `marketing.yaml`, `logistics.yaml`) governing Intake, Spec Policies, and Sandbox Acceptance Criteria.
+- **Intelligent Delivery Path Selection:** Evaluates business briefs and presents non-technical **Trade-Off Cards** (Direct Connector Automation vs. Autonomous Multi-Agent Development) with zero jargon.
+- **Scale-to-Zero Human Governance:** Human gates (**Gate H1** for specifications, **Gate H2** for deployment/activation) pause compute at $0 idle cost without session timeout crashes.
+- **GCS + BigQuery Process Artifact Catalog:** Stores deliverables in partitioned Cloud Storage (`gs://<bucket>/processes/{domain}/{loop_id}/`) and indexes them in BigQuery (`sdo_analytics.process_artifacts`) for instant search and monitoring.
+- **Two-Tier Quality Harness:** Tier 1 static AST/regex rules + Tier 2 `PolicyAuditorAgent` compliance critic.
+- **Ephemeral Managed Linux Sandbox:** Isolated container runner executing `pytest` with a 100% pass guarantee.
+- **WORM Audit Trail:** Cloud Storage Object Retention (Bucket Lock in WORM mode) for immutable SHA-256 compliance.
 
 ---
 
@@ -48,11 +49,11 @@ The Wallbox SDO Platform eliminates manual software and data delivery bottleneck
 
 ```mermaid
 flowchart TD
-    subgraph Ingress ["Plane 1: Ingress & Gateway (Google Workspace OIDC)"]
+    subgraph Ingress ["Plane 1: Ingress & Agent Gateway (Google Workspace / IAP)"]
         User(["Business Domain Owner\n(Finance, Sales, Firmware, Marketing, Logistics)"])
         Chat["Google Chat Webhook\n(Adaptive Cards v2)"]
         WebUI["Interactive Web Dashboard\n(FastAPI / Chrome)"]
-        GE["Gemini Enterprise Portal\n(A2A & Reasoning Engine)"]
+        GE["Gemini Enterprise Agent Registry\n(A2A & Reasoning Engine)"]
         
         User --> Chat
         User --> WebUI
@@ -63,8 +64,13 @@ flowchart TD
         GE --> AGW
     end
 
+    subgraph SelectionLayer ["Intelligent Path Selection & Trade-Off Engine"]
+        AGW --> EVALUATOR{"Path Evaluator\n(Direct Connector vs Multi-Agent)"}
+        EVALUATOR -->|Non-Technical Trade-Off Card| UserChoice{"User Selects Path"}
+    end
+
     subgraph StateGraph ["Plane 2: Execution & ADK 2.0 State Graph (gemini-3.7-flash)"]
-        AGW --> INTAKE["1. INTAKE\n(Validate Roles & Bind Skill)"]
+        UserChoice --> INTAKE["1. INTAKE\n(Validate Roles & Bind Skill)"]
         INTAKE --> SPECIFY["2. SPECIFY\n(Documental Agent: spec.md)"]
         SPECIFY --> SPEC_HARNESS{"3. Two-Tier Spec Harness\n(AST + Policy Auditor Critic)"}
         
@@ -79,13 +85,13 @@ flowchart TD
         DESIGN --> IMPLEMENT["5. IMPLEMENT\n(Implementer Agent + Ephemeral Sandbox)"]
         IMPLEMENT --> REVIEW["6. REVIEW\n(Reviewer Agent QA)"]
         
-        REVIEW -- Pass --> GATE_H2{{"Gate H2: Merge & Release Sign-Off\n(Scale-to-Zero Pause ⏸)"}}
+        REVIEW -- Pass --> GATE_H2{{"Gate H2: Activation Sign-Off\n(Scale-to-Zero Pause ⏸)"}}
         REVIEW -- Fix Code --> IMPLEMENT
         REVIEW -- Fix Design --> DESIGN
         REVIEW -- Fix Spec --> SPECIFY
         REVIEW -- Max Retries --> ESCALATE
         
-        GATE_H2 -- Approve --> CLOSE["7. CLOSE\n(Squash-Merge PR & Tag v1.0.x)"]
+        GATE_H2 -- Approve --> CLOSE["7. CLOSE\n(Deploy Asset & Seal Record)"]
         GATE_H2 -- Reject --> CLOSED
         
         CLOSE --> WATCH["8. WATCH\n(Watcher Agent: Day 30 Telemetry)"]
@@ -95,7 +101,9 @@ flowchart TD
     subgraph PlatformServices ["Plane 3: Storage, Observability & WORM Audit"]
         IMPLEMENT <--> SANDBOX["Managed Agent Linux Sandbox\n(pytest, sqlfluff)"]
         SPECIFY <--> BQ_MCP["BigQuery Managed MCP\n(Schema & Safe SQL)"]
-        CLOSE --> GCS_WORM["Cloud Storage Object Retention\n(Bucket Lock WORM Mode)"]
+        CLOSE --> GCS_WORM["Cloud Storage Object Retention\n(WORM Audit Seal)"]
+        CLOSE --> GCS_ART["Cloud Storage Artifact Storage\n(gs://bucket/processes/domain/loop_id/)"]
+        GCS_ART --> BQ_CATALOG["BigQuery Artifact Catalog\n(sdo_analytics.process_artifacts)"]
         StateGraph --> OTEL["OpenTelemetry Tracing\n(Cloud Trace & Logging)"]
         StateGraph --> BQ_ANALYTICS["BigQuery Agent Analytics\n(sdo_analytics.session_traces)"]
     end
@@ -107,28 +115,46 @@ flowchart TD
 
 ```
 +-------------------------------------------------------------------------------------------------------+
-| PLANE 1: DEFINITIONS & CONTRACTS (Multi-Domain Skill Registry)                                        |
+| PLANE 1: DEFINITIONS & CONTRACTS (Multi-Domain Skill Registry & Agent Gateway)                        |
 | Domain Manifests (finance, sales, firmware, marketing, logistics), Pydantic Schemas, Agent Prompts    |
 +-------------------------------------------------------------------------------------------------------+
                                                   |
                                                   v
 +-------------------------------------------------------------------------------------------------------+
-| PLANE 2: DELIVERABLES & WORK PRODUCTS (GitHub VCS & Ephemeral Sandboxes)                              |
-| spec.md, design.md, BigQuery SQL Views, Python Logic, Sandbox Test Suites, Pull Requests, Tags       |
+| PLANE 2: DELIVERABLES & WORK PRODUCTS (GCS Process Artifacts & Ephemeral Sandboxes)                   |
+| spec.md, design.md, SQL Views, Python Logic, Sandbox Test Suites, Pull Requests, Tags                |
 +-------------------------------------------------------------------------------------------------------+
                                                   |
                                                   v
 +-------------------------------------------------------------------------------------------------------+
-| PLANE 3: IMMUTABLE AUDIT EVENT LOG (Cloud Storage Object Retention & BigQuery Analytics)              |
-| SHA-256 Hashed JSON State Trajectories, OpenTelemetry Cloud Trace Spans, Execution Metrics           |
+| PLANE 3: IMMUTABLE AUDIT EVENT LOG (Cloud Storage WORM Lock & BigQuery Catalog Index)                 |
+| SHA-256 Hashed JSON State Trajectories, OpenTelemetry Cloud Trace Spans, Artifact Index Table        |
 +-------------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 📂 Multi-Domain Skill Registry (5 Domains)
+## 🚪 Agent Gateway & Dual-Identity Protocol
 
-Located in [`registry/skills/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills), domain policies govern 3 lifecycle touchpoints:
+Located in [`gateway/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway):
+- **OIDC & IAP Header Extraction ([`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py)):** Authenticates incoming user identities from Google Workspace or Identity-Aware Proxy (`X-Goog-Authenticated-User-Email`).
+- **Dual-Identity Classification:** Strictly separates **Human User Actions** from **Machine Agent Service Accounts** (`sa-sdo-{node}@managed-agent-504409.iam.gserviceaccount.com`).
+- **Domain RBAC & Table Allowlisting ([`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py)):** Intercepts initiation at `INTAKE`, matches roles against the domain manifest, and blocks unauthorized cross-tenant requests before LLM invocation.
+
+---
+
+## 🏛 Agent Registry in Gemini Enterprise
+
+Both agent deployment variants are registered in the **Google Discovery Engine / Gemini Enterprise Agent Catalog**:
+- **Option A (`11327987463052893149`):** `Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)` exposing the A2A Agent Card.
+- **Option B (`7628637833600983461`):** `Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)` executing ADK State Graphs directly on Vertex AI.
+- **Extensible MCP Catalog:** Ready to register upcoming managed GCP MCPs and third-party enterprise tools (Salesforce, NetSuite, Notion).
+
+---
+
+## 📂 Multi-Domain Skill Registry & Security Policies
+
+Located in [`registry/skills/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills), 5 domain manifests govern the full delivery lifecycle:
 
 | Domain | Manifest | Authorized BigQuery Tables | Mandatory Business Metrics | Prohibited Operations |
 |---|---|---|---|---|
@@ -140,172 +166,95 @@ Located in [`registry/skills/`](file:///usr/local/google/home/papelamine/Documen
 
 ---
 
-## 🤖 Gemini 3.7 Flash Sub-Agents & Quality Harness
+## 🧭 Intelligent Path Selection: Direct Connector vs. Multi-Agent
 
-| Agent Persona | File | Model | Primary Mission |
-|---|---|---|---|
-| **Documental** | [`agents/documental.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/agents/documental.py) | `gemini-3.7-flash` | Synthesizes `spec.md` with YAML frontmatter, Gherkin test scenarios, and BigQuery schema context. |
-| **Two-Tier Harness** | [`harnesses/*.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/harnesses) | `gemini-3.7-flash` | **Tier 1:** Static AST/schema validator.<br>**Tier 2:** `PolicyAuditorAgent` validating SOC 2, GDPR, and scope boundaries. |
-| **Arquitecto** | [`agents/arquitecto.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/agents/arquitecto.py) | `gemini-3.7-flash` | Generates `design.md`, architectural sequence diagrams, and sandbox test specifications. |
-| **Implementer** | [`agents/implementer.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/agents/implementer.py) | `gemini-3.7-flash` | Generates BigQuery SQL views and Python transforms, then executes them in an ephemeral Linux sandbox. |
-| **Reviewer** | [`agents/reviewer.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/agents/reviewer.py) | `gemini-3.7-flash` | Audits code against skill acceptance criteria (100% test pass rate, SQL linting, schema boundaries). |
-| **Watcher** | [`agents/watcher.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/agents/watcher.py) | `gemini-3.7-flash` | Monitors query execution latency, row scan volume, and SLA compliance 30 days post-deployment. |
+Business users are presented with a clear, non-technical **Trade-Off Card** at Intake:
+
+```
++---------------------------------------------------------------------------------------------------------+
+|                                    DELIVERY PATH SELECTION MATRIX                                       |
++---------------------------------------------------------------------------------------------------------+
+| Path Option 1: Direct Connector Automation (Tool-Native / MCP)                                          |
+| • Best For:        Data reports, analytical views, and workflows pulling from Salesforce, NetSuite, BQ |
+| • Business Pros:   Lightning Fast (< 5s), $0 server compute, direct data warehouse execution            |
+| • Business Cons:   Best for standard queries; does not build custom software microservices              |
+| • Governance:      Two-Tier Spec Gate + Gate H1 + Gate H2 + WORM Audit Trail                            |
++---------------------------------------------------------------------------------------------------------+
+| Path Option 2: Autonomous Multi-Agent Software Development (Full ADK Graph)                            |
+| • Best For:        Bespoke data engineering algorithms, custom Python logic, APIs, OCPP error decoders  |
+| • Business Pros:   Synthesizes custom Python code, creates blueprints, isolated Linux sandbox (100% pass)|
+| • Business Cons:   Multi-stage synthesis takes slightly longer (~30-60s)                               |
+| • Governance:      Two-Tier Quality Harness + Gate H1 + Gate H2 + Ephemeral Sandbox + WORM Audit Trail  |
++---------------------------------------------------------------------------------------------------------+
+```
 
 ---
 
-## 🌐 Gemini Enterprise Integration
+## 📦 GCS Structured Artifact Storage & BigQuery Catalog
 
-The application supports **both deployment options** in Gemini Enterprise:
+All process deliverables are stored in a structured hierarchy in **Google Cloud Storage (GCS)** and indexed in **BigQuery** (`sdo_analytics.process_artifacts`):
 
-```
-+-------------------------------------------------------------------------------------------------------------------------+
-|                                    GEMINI ENTERPRISE AGENT CATALOG                                                      |
-+-------------------------------------------------------------------------------------------------------------------------+
-| Option A:  Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)                                            |
-|            • Protocol:         A2A (Agent-to-Agent v1.0)                                                                |
-|            • Features:         Interactive Chrome Web visualizer, Gate H1 & H2 sign-off buttons, Google Chat webhook    |
-|            • Service URL:      https://sdo-adk-cloudrun-a2a-<PROJECT_NUMBER>.<REGION>.run.app                            |
-|            • Discovery Card:   .../a2a/app/.well-known/agent-card.json                                                  |
-+-------------------------------------------------------------------------------------------------------------------------+
-| Option B:  Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)                                                      |
-|            • Protocol:         Native ADK Reasoning Engine (:streamQuery)                                               |
-|            • Target:           Vertex AI Agent Runtime (reasoningEngines)                                               |
-|            • Features:         Pure headless Python execution, zero server management, streaming model responses        |
-+-------------------------------------------------------------------------------------------------------------------------+
-```
+- **GCS Storage Path:** `gs://<bucket>/processes/{domain}/{loop_id}/{artifact_name}`
+- **BigQuery Index Schema:**
+  - `artifact_id`: Deterministic unique identifier (e.g. `ART-FINANCE-125744-spec_md`)
+  - `loop_id`: Delivery loop identifier
+  - `domain`: Business domain (`finance`, `sales`, `firmware`, `marketing`, `logistics`)
+  - `artifact_name`: Filename (`spec.md`, `view.sql`, `test_results.json`)
+  - `artifact_type`: Classification (`SPECIFICATION`, `SQL_VIEW`, `PYTHON_CODE`, `TEST_REPORT`)
+  - `gcs_uri`: Full Cloud Storage URI (`gs://...`)
+  - `content_sha256`: Cryptographic integrity hash
+  - `size_bytes`: Byte length
+  - `created_at` / `created_by`: Provenance metadata
 
 ---
 
 ## 🚀 Quickstart & Local Verification
 
-### 1. Prerequisites
-- Python >= 3.12
-- Google Cloud SDK (`gcloud`) authenticated
-- Docker (optional for local container builds)
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 ```bash
-git clone https://github.com/wallbox/sdo-adk-engine.git
-cd sdo-adk-engine
+git clone https://github.com/Gbrit642/wallbox-sdo-platform.git
+cd wallbox-sdo-platform
 pip install -e ".[dev]"
 ```
 
-### 3. Run Full Automated Test Suite (43 Tests)
+### 2. Run Full Automated Test Suite (47 Tests)
 ```bash
 python3 -m pytest tests/ -v
 ```
 
-### 4. Run Offline Benchmark Evaluation Suite
+### 3. Run Offline Benchmark Evaluation Suite
 ```bash
 python3 -m eval.evaluator --benchmark eval/benchmarks/finance_benchmarks.json
 ```
 *Expected Output: Aggregate score 1.00 / 1.00 (PASS).*
 
-### 5. Start Local Web Dashboard & API
+### 4. Start Local Web Dashboard & API
 ```bash
 python3 -m uvicorn web.app:app --host 127.0.0.1 --port 8080 --reload
 ```
-Open **`http://localhost:8080`** in **Google Chrome** to launch loops and sign off on gates.
+Open **`http://localhost:8080`** in **Google Chrome** to launch loops and compare trade-offs.
 
 ---
 
-## 🔄 1-Click Project Replication Guide (Deploy to Any GCP Project)
+## 🔄 1-Click Multi-Project Replication Guide
 
-To rebuild and deploy this entire platform into a new GCP project (e.g. `your-company-prod`):
+To rebuild and deploy this entire platform into any new GCP project:
 
-### Step 1: Set Target Project & Authenticate
 ```bash
-export TARGET_PROJECT="your-target-project-id"
-export TARGET_REGION="us-central1"
+export NEW_PROJECT_ID="your-target-project-id"
+export REGION="us-central1"
 
-gcloud config set project "${TARGET_PROJECT}"
-gcloud auth application-default set-quota-project "${TARGET_PROJECT}"
-```
-
-### Step 2: Enable Required GCP APIs
-```bash
-gcloud services enable \
-  run.googleapis.com \
-  aiplatform.googleapis.com \
-  discoveryengine.googleapis.com \
-  bigquery.googleapis.com \
-  storage.googleapis.com \
-  cloudtrace.googleapis.com \
-  logging.googleapis.com \
-  cloudbuild.googleapis.com \
-  --project="${TARGET_PROJECT}"
-```
-
-### Step 3: Deploy Infrastructure via Terraform
-```bash
+# 1. Apply Terraform Infrastructure
 cd terraform
 terraform init
 terraform apply \
-  -var="project_id=${TARGET_PROJECT}" \
-  -var="region=${TARGET_REGION}" \
+  -var="project_id=${NEW_PROJECT_ID}" \
+  -var="region=${REGION}" \
   -auto-approve
-```
-*Terraform automatically provisions:*
-1. Cloud Run service (`sdo-adk-engine`)
-2. Cloud Storage Object Retention WORM bucket (`sdo-worm-audit-${TARGET_PROJECT}`)
-3. BigQuery Demo Datasets (`sdo_finance_demo`) and Agent Analytics (`sdo_analytics`)
-4. BigQuery sample invoice/billing tables from `sample_data.sql`
 
-### Step 4: Deploy & Register to Gemini Enterprise
-```bash
+# 2. Deploy & Register to Gemini Enterprise
 cd ..
-# Deploy Cloud Run container & Register Option A + Option B
 ./scripts/deploy_both_to_gemini_enterprise.sh
-```
-
----
-
-## 🎮 Live Demo Runbook
-
-### Option 1: Via Interactive Web Dashboard
-1. Open the Cloud Run URL (or `http://localhost:8080`).
-2. Select domain `finance` and enter brief:  
-   *"Create a weekly currency variance analysis view comparing EUR invoices with USD receipts."*
-3. Click **`🚀 Launch Delivery Loop`**.
-4. Review generated Gherkin `spec.md` and click **`✅ Approve Specification`** (Gate H1).
-5. Watch the **Ephemeral Linux Sandbox** compile and pass tests with **100% pass rate**.
-6. Click **`🚀 Approve Merge & Deploy`** (Gate H2).
-7. Confirm loop transitions to **`DONE`**, Pull Request is merged, and WORM audit record is sealed.
-
-### Option 2: 1-Click Terminal Verification Script
-```bash
-python3 -c "
-import urllib.request, json
-BASE_URL = 'https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app'
-
-# 1. Create Loop
-req = urllib.request.Request(f'{BASE_URL}/api/v1/loops', data=json.dumps({
-    'node_id': 'finance',
-    'brief_text': 'Create weekly FX variance analysis view.',
-    'owner_email': 'sarah.controller@wallbox.com'
-}).encode(), headers={'Content-Type': 'application/json'})
-with urllib.request.urlopen(req) as r:
-    loop = json.loads(r.read())
-    loop_id = loop['loop_id']
-    print(f'[PASS] Loop Created: {loop_id} (State: {loop[\"current_state\"]})')
-
-# 2. Gate H1 Sign-Off
-h1_req = urllib.request.Request(f'{BASE_URL}/api/v1/loops/{loop_id}/gates/h1/resolve', data=json.dumps({
-    'decision': 'approve', 'comment': 'Spec approved'
-}).encode(), headers={'Content-Type': 'application/json'})
-with urllib.request.urlopen(h1_req) as r:
-    res_h1 = json.loads(r.read())
-    print(f'[PASS] Gate H1 Approved -> Sandbox Passed (State: {res_h1[\"current_state\"]})')
-
-# 3. Gate H2 Sign-Off
-h2_req = urllib.request.Request(f'{BASE_URL}/api/v1/loops/{loop_id}/gates/h2/resolve', data=json.dumps({
-    'decision': 'approve', 'comment': 'Merge approved'
-}).encode(), headers={'Content-Type': 'application/json'})
-with urllib.request.urlopen(h2_req) as r:
-    res_h2 = json.loads(r.read())
-    print(f'[PASS] Gate H2 Approved -> DONE (PR: {res_h2[\"pull_request_url\"]})')
-    print(f'[PASS] WORM Audit Seal: {res_h2[\"worm_audit_record_id\"]}')
-"
 ```
 
 ---
@@ -323,22 +272,18 @@ sdo-adk-engine/
 │   ├── settings.py                 # Pydantic Settings (GCP Project: managed-agent-504409, Model: gemini-3.7-flash)
 │   └── nodes.yaml                  # Multi-tenant domain definitions (finance, sales, firmware, marketing, logistics)
 ├── gateway/
-│   ├── auth.py                     # Google Workspace OIDC identity & role extraction
-│   ├── policy_interceptor.py       # Domain access control, table allowlists & skill binding
+│   ├── auth.py                     # Google Workspace / IAP identity & Dual-Identity classification
+│   ├── policy_interceptor.py       # Domain access control, table allowlists & Skill binding
 │   └── chat_adapter.py             # Google Chat Adaptive Cards v2 formatter
 ├── registry/
 │   ├── skill_registry.py           # Dynamic YAML skill loader and policy engine
-│   └── skills/                     # Domain manifests
-│       ├── finance.yaml            # Finance rules, tables, metrics, prohibited SQL
-│       ├── sales.yaml              # Sales opportunity pipeline & PII rules
-│       ├── firmware.yaml           # Firmware telemetry & OCPP 1.6J/2.0.1 rules
-│       ├── marketing.yaml          # Marketing multi-touch attribution & CAC rules
-│       └── logistics.yaml          # Warehouse inventory & dispatch SLA rules
+│   └── skills/                     # Domain manifests (finance, sales, firmware, marketing, logistics)
 ├── graphs/
-│   ├── state.py                    # Master LoopState Pydantic model
+│   ├── state.py                    # Master LoopState Pydantic model (with path selection & GCS URIs)
 │   ├── router.py                   # 100% deterministic Python routers (spec harness, review, gates)
 │   └── workflow.py                 # ADK StateGraph construction & compilation
 ├── agents/
+│   ├── tradeoff_evaluator.py       # Path Selection & Non-Technical Trade-Off Evaluator
 │   ├── documental.py               # Documental Agent (spec.md authoring with gemini-3.7-flash)
 │   ├── arquitecto.py               # Arquitecto Agent (design.md & test plan authoring)
 │   ├── implementer.py              # Implementer Agent (code/SQL generation + Sandbox runner)
@@ -353,6 +298,7 @@ sdo-adk-engine/
 │   ├── github_client.py            # GitHub PR creation, squash-merge, and release tagging
 │   └── managed_sandbox.py          # Ephemeral Linux sandbox runner (isolated pytest & sqlfluff)
 ├── storage/
+│   ├── artifact_catalog.py         # Cloud Storage hierarchy & BigQuery Catalog Manager
 │   └── worm_audit.py               # Cloud Storage Object Retention WORM writer (SHA-256 digests)
 ├── observability/
 │   ├── otel.py                     # OpenTelemetry instrumentation (Cloud Trace & Logging)
@@ -360,35 +306,28 @@ sdo-adk-engine/
 ├── eval/
 │   ├── evaluator.py                # Gemini Enterprise evaluation suite
 │   ├── custom_metrics.py           # Custom evaluators (Gherkin adherence, Graph conformance, Skill compliance)
-│   └── benchmarks/                 # Ground truth evaluation datasets (finance_benchmarks.json)
+│   └── benchmarks/                 # Ground truth evaluation datasets
 ├── web/
 │   ├── app.py                      # FastAPI control plane, REST API, A2A card endpoint, Chat webhook
-│   └── static/                     # Web Dashboard SPA (visual FSM graph, gate cards, diff view)
+│   └── static/                     # Web Dashboard SPA (visual FSM graph, trade-off cards, catalog tab)
 ├── terraform/                      # Complete GCP Infrastructure as Code
 │   ├── main.tf                     # Cloud Run, Cloud Storage WORM bucket, BigQuery datasets
+│   ├── iap_load_balancer.tf        # Serverless NEG, Backend Service & IAP configuration
 │   ├── variables.tf                # Configurable parameters (project_id, region)
 │   ├── outputs.tf                  # Deployed service URLs and resource identifiers
 │   └── sample_data.sql             # BigQuery sdo_finance_demo sample billing/invoice tables
 ├── scripts/
 │   ├── deploy_both_to_gemini_enterprise.sh  # Automated dual deployment script
+│   ├── start_iam_proxy.sh                   # Authenticated IAM local proxy for Chrome
 │   ├── register_gemini_enterprise.sh        # Standard agents-cli publish script
 │   └── register_with_gcloud_auth.py         # Direct Gemini Enterprise API registrar
 ├── tests/
-│   ├── unit/                       # Fast unit tests (routing, harnesses, skills, API, OTel, eval)
+│   ├── unit/                       # Fast unit tests (routing, harnesses, skills, API, OTel, eval, catalog)
 │   └── integration/                # Full E2E domain scenarios (Finance, Sales, Firmware, Marketing, Logistics)
 └── docs/
     ├── architecture.md             # Level 300 GCP Reference Architecture
     ├── demo_script.md              # Interactive Live Demo Walkthrough
     ├── replication_guide.md        # Step-by-step new GCP project onboarding guide
-    ├── validation_matrix.md        # Authoritative 43-point test matrix
-    └── google_chat_setup.md        # Google Chat App manifest and webhook guide
+    ├── org_policy_and_iap_guide.md # IAP and constraints/run.managed.requireInvokerIam guide
+    └── validation_matrix.md        # Authoritative 47-point test matrix
 ```
-
----
-
-## 🔒 Security & SOC 2 Type II Compliance
-
-- **Zero-Trust Access Control:** Agent Gateway validates Google Workspace OIDC tokens and enforces domain-level RBAC.
-- **WORM Audit Lock:** Cloud Storage Object Retention (Bucket Lock) enforces immutable, non-deletable records for every state change.
-- **Secure Ephemeral Execution:** Code and SQL queries are compiled and tested inside isolated Linux sandboxes with zero host file system access.
-- **Data Boundary Isolation:** Table allowlists prevent cross-department data leakage. Destructive SQL operations (`DROP TABLE`, `DELETE FROM`) are rejected deterministically before human review.

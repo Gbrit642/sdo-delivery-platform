@@ -25,9 +25,11 @@ from agents.reviewer import review_node
 from agents.watcher import watch_node
 from harnesses.harness_node import spec_harness_node
 from storage.worm_audit import WormAuditWriter
+from storage.artifact_catalog import get_artifact_catalog
 from observability.analytics import BigQueryAgentAnalytics
 from tools.github_client import GitHubClient
 from registry.skill_registry import get_skill_registry
+from agents.tradeoff_evaluator import TradeoffEvaluator, TradeoffComparison
 
 logger = logging.getLogger("sdo.web")
 settings = get_settings()
@@ -82,6 +84,31 @@ def build_configured_graph() -> SDOStateGraph:
         state.close_commit_hash = merge_sha
         state.pull_request_url = pr.html_url
 
+        # Catalog code artifacts & test results into GCS + BigQuery index
+        catalog = get_artifact_catalog()
+        for filename, content in state.code_artifacts.items():
+            art_type = "SQL_VIEW" if filename.endswith(".sql") else "PYTHON_CODE"
+            rec = await catalog.store_and_catalog_artifact(
+                domain=state.node_id,
+                loop_id=state.loop_id,
+                artifact_name=filename,
+                artifact_type=art_type,
+                content=content,
+                created_by=state.initiator.user_email or "sdo-engine",
+            )
+            state.gcs_artifact_uris[filename] = rec.gcs_uri
+
+        if state.test_results:
+            test_rec = await catalog.store_and_catalog_artifact(
+                domain=state.node_id,
+                loop_id=state.loop_id,
+                artifact_name="test_results.json",
+                artifact_type="TEST_REPORT",
+                content=state.test_results,
+                created_by="sdo-sandbox",
+            )
+            state.gcs_artifact_uris["TEST_REPORT"] = test_rec.gcs_uri
+
         # Seal WORM audit record
         audit_key = await audit_writer.write_audit_record(
             node_id=state.node_id,
@@ -119,8 +146,14 @@ class CreateLoopRequest(BaseModel):
     node_id: str = "finance"
     brief_text: str
     owner_email: str = "sarah.controller@wallbox.com"
+    delivery_path: Literal["direct_connector_automation", "multi_agent_software_dev"] = "multi_agent_software_dev"
     roles: list[str] | None = None
     department: str | None = None
+
+
+class EvaluateTradeoffRequest(BaseModel):
+    brief_text: str
+    node_id: str = "finance"
 
 
 class ResolveGateRequest(BaseModel):
@@ -144,8 +177,14 @@ async def healthz():
     }
 
 
+@app.post("/api/v1/tradeoffs/evaluate", response_model=TradeoffComparison)
+async def evaluate_tradeoffs(req: EvaluateTradeoffRequest):
+    """Evaluate a natural language business brief and present comparative trade-offs."""
+    return TradeoffEvaluator.evaluate_brief(brief_text=req.brief_text, domain=req.node_id)
+
+
 @app.post("/api/v1/loops", status_code=201)
-async def create_loop(req: CreateLoopRequest, request: Request):
+async def create_loop(req: CreateLoopRequest, request: Request = None):
     """Launch a new SDO loop from a natural language brief."""
     loop_id = f"01KZZ{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
@@ -160,24 +199,42 @@ async def create_loop(req: CreateLoopRequest, request: Request):
 
     assigned_dept = req.department or req.node_id.title()
 
+    headers = dict(request.headers) if request is not None else {}
     initiator = gateway_auth.extract_identity_from_headers(
-        headers=dict(request.headers),
+        headers=headers,
         fallback_email=req.owner_email,
         fallback_roles=assigned_roles,
         fallback_dept=assigned_dept,
     )
+
+    tradeoff = TradeoffEvaluator.evaluate_brief(req.brief_text, req.node_id)
 
     state = LoopState(
         loop_id=loop_id,
         node_id=req.node_id,
         initiator=initiator,
         brief_raw=req.brief_text,
+        delivery_path=req.delivery_path,
+        tradeoff_analysis=tradeoff.model_dump(mode="json"),
     )
 
     # Run Leg 1: INTAKE -> SPECIFY -> SPEC_HARNESS -> GATE_H1 (pauses at WAIT_GATE_H1)
     graph = build_configured_graph()
     state = await graph.run_until_pause_or_terminal(state)
     active_loops[loop_id] = state
+
+    # Store and catalog spec in GCS & BigQuery index
+    catalog = get_artifact_catalog()
+    if state.spec_content:
+        spec_rec = await catalog.store_and_catalog_artifact(
+            domain=state.node_id,
+            loop_id=state.loop_id,
+            artifact_name="spec.md",
+            artifact_type="SPECIFICATION",
+            content=state.spec_content,
+            created_by=state.initiator.user_email or "sdo-engine",
+        )
+        state.gcs_artifact_uris["SPECIFICATION"] = spec_rec.gcs_uri
 
     # Stream analytics
     await analytics.log_step_event(
@@ -204,8 +261,22 @@ async def get_loop(loop_id: str):
     return active_loops[loop_id]
 
 
+@app.get("/api/v1/artifacts")
+async def list_all_artifacts(domain: str | None = None):
+    """List all indexed process artifacts stored in GCS and indexed in BigQuery."""
+    catalog = get_artifact_catalog()
+    return await catalog.list_all_artifacts(domain=domain)
+
+
+@app.get("/api/v1/loops/{loop_id}/artifacts")
+async def list_loop_artifacts(loop_id: str):
+    """List all indexed process artifacts for a specific delivery loop."""
+    catalog = get_artifact_catalog()
+    return await catalog.list_artifacts_for_loop(loop_id=loop_id)
+
+
 @app.post("/api/v1/loops/{loop_id}/gates/{gate}/resolve")
-async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGateRequest, request: Request):
+async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGateRequest, request: Request = None):
     """Resolve human approval Gate H1 or Gate H2 and resume state graph execution."""
     if loop_id not in active_loops:
         raise HTTPException(status_code=404, detail=f"Loop '{loop_id}' not found.")
@@ -223,8 +294,9 @@ async def resolve_gate(loop_id: str, gate: Literal["h1", "h2"], req: ResolveGate
 
     assigned_dept = req.department or state.initiator.department or state.node_id.title()
 
+    headers = dict(request.headers) if request is not None else {}
     actor = gateway_auth.extract_identity_from_headers(
-        headers=dict(request.headers),
+        headers=headers,
         fallback_email=req.actor_email,
         fallback_roles=assigned_roles,
         fallback_dept=assigned_dept,
