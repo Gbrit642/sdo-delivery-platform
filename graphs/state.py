@@ -75,6 +75,7 @@ class LoopState(BaseModel):
     close_commit_hash: str | None = None
     pull_request_url: str | None = None
     worm_audit_record_id: str | None = None
+    business_deliverable_card: dict[str, Any] | None = None
 
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

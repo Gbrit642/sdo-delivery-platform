@@ -121,3 +121,40 @@ async def test_api_tradeoff_and_artifact_endpoints():
         assert len(artifacts) >= 1
         assert artifacts[0]["artifact_name"] == "spec.md"
         assert "gs://" in artifacts[0]["gcs_uri"]
+
+        # 4. Resolve Gate H1 and Gate H2 to verify Business Deliverable Card generation
+        h1_resp = await client.post(
+            f"/api/v1/loops/{loop_id}/gates/h1/resolve",
+            json={"decision": "approve", "actor_email": "sarah.controller@wallbox.com"},
+        )
+        assert h1_resp.status_code == 200
+
+        h2_resp = await client.post(
+            f"/api/v1/loops/{loop_id}/gates/h2/resolve",
+            json={"decision": "approve", "actor_email": "sarah.controller@wallbox.com"},
+        )
+        assert h2_resp.status_code == 200
+        completed_loop = h2_resp.json()
+        assert completed_loop["current_state"] == "DONE"
+        assert completed_loop["business_deliverable_card"] is not None
+
+        card = completed_loop["business_deliverable_card"]
+        assert "managed-agent-504409" in card["project_id"]
+        assert "console.cloud.google.com/bigquery" in card["console_deep_link"]
+        assert "No manual Python scripts" in card["zero_cli_note"]
+        assert len(card["sample_data"]) >= 3
+
+
+@pytest.mark.asyncio
+async def test_agent_system_prompts_strictly_prohibit_cli_commands():
+    """Verify that all agent system prompts contain strict non-technical guardrails."""
+    from agents.documental import DocumentalAgent
+    from agents.arquitecto import ArquitectoAgent
+    from agents.implementer import ImplementerAgent
+    from agents.reviewer import ReviewerAgent
+
+    for agent_cls in [DocumentalAgent, ArquitectoAgent, ImplementerAgent, ReviewerAgent]:
+        prompt = agent_cls.SYSTEM_PROMPT
+        assert "NON-TECHNICAL" in prompt or "non-technical" in prompt
+        assert "NEVER" in prompt
+        assert "<YOUR_PROJECT_ID>" in prompt or "terminal" in prompt

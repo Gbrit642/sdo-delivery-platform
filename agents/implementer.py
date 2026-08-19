@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 class ImplementerAgent:
     """Agent that compiles code/SQL deliverables and executes automated tests in an isolated sandbox."""
 
+    SYSTEM_PROMPT = """You are Implementer, the Code & Delivery Synthesis Agent for Wallbox SDO Platform.
+Your task is to synthesize verified code deliverables and execute unit tests in an isolated Linux sandbox.
+
+STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:
+1. End-users are business domain managers; NEVER instruct them to run terminal commands (`python3 ...`, `pip ...`, `gcloud ...`).
+2. All deployment steps are automated by the platform into the active project (default: managed-agent-504409).
+3. Deliverables must be verified in the sandbox with 100% test pass rate before presentation."""
+
     def __init__(self, model_client: Any = None, sandbox: ManagedAgentSandbox | None = None) -> None:
         self.model_client = model_client
         self.sandbox = sandbox or ManagedAgentSandbox()

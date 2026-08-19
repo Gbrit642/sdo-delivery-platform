@@ -271,9 +271,41 @@ function renderLoopView(state) {
     } else if (currentState === "WAIT_GATE_H2") {
         gatePanel.style.display = "flex";
         document.getElementById("gate-title").textContent = "Gate H2: Final Merge & Deploy Sign-Off";
-        document.getElementById("gate-desc").textContent = "Review the sandbox test report (100% pass rate) and deliverables. Approve to squash-merge and deploy.";
+        document.getElementById("gate-desc").textContent = "Review the sandbox test report (100% pass rate) and deliverables. Approve to deploy the asset to Google Cloud.";
     } else {
         gatePanel.style.display = "none";
+    }
+
+    // Render Business Deliverable Card if present
+    const delivPanel = document.getElementById("business-deliverable-panel");
+    if (state.business_deliverable_card) {
+        const card = state.business_deliverable_card;
+        delivPanel.style.display = "block";
+        document.getElementById("deliv-title").textContent = card.title;
+        document.getElementById("deliv-purpose").textContent = card.business_purpose;
+        document.getElementById("deliv-resource").textContent = card.full_resource_id;
+        document.getElementById("deliv-console-link").href = card.console_deep_link;
+        document.getElementById("deliv-freshness").textContent = card.data_freshness;
+        document.getElementById("deliv-sla").textContent = card.target_sla;
+        document.getElementById("deliv-zero-cli").textContent = card.zero_cli_note;
+
+        // Render Sample Table
+        if (card.sample_data && card.sample_data.length > 0) {
+            const keys = Object.keys(card.sample_data[0]);
+            let tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:11px; background:white; border:1px solid #ceead6; border-radius:4px;">
+                <thead><tr style="background:#f1f8f3; text-align:left;">`;
+            keys.forEach(k => tableHtml += `<th style="padding:6px; border-bottom:1px solid #ceead6;">${k}</th>`);
+            tableHtml += `</tr></thead><tbody>`;
+            card.sample_data.forEach(row => {
+                tableHtml += `<tr style="border-bottom:1px solid #f8f9fa;">`;
+                keys.forEach(k => tableHtml += `<td style="padding:6px;">${row[k]}</td>`);
+                tableHtml += `</tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            document.getElementById("deliv-sample-table").innerHTML = tableHtml;
+        }
+    } else {
+        delivPanel.style.display = "none";
     }
 
     // Populate Artifact Tabs

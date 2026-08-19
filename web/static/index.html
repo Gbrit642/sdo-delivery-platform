@@ -143,6 +143,29 @@
                 </div>
             </div>
 
+            <!-- Business Deliverable Card (Rendered upon completion) -->
+            <div class="card" id="business-deliverable-panel" style="display: none; background: #e6f4ea; border: 1px solid #137333; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 id="deliv-title" style="color: #137333; margin: 0 0 6px 0;">🎉 Deployed Business Asset</h3>
+                        <p id="deliv-purpose" style="font-size: 13px; color: #202124; margin: 0 0 10px 0;"></p>
+                    </div>
+                    <a id="deliv-console-link" href="#" target="_blank" class="btn btn-primary btn-sm" style="background: #1a73e8; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 8px 14px; border-radius: 6px; font-weight: 500;">
+                        <span>📊 Open in BigQuery Studio</span>
+                    </a>
+                </div>
+                <div style="display: flex; gap: 20px; font-size: 12px; color: #3c4043; background: white; padding: 10px 14px; border-radius: 6px; border: 1px solid #ceead6; margin-bottom: 12px;">
+                    <div><strong>GCP Resource:</strong> <code id="deliv-resource" style="color: #1a73e8;">...</code></div>
+                    <div><strong>Data Freshness:</strong> <span id="deliv-freshness">Automated Daily</span></div>
+                    <div><strong>Target SLA:</strong> <span id="deliv-sla">&lt; 250ms</span></div>
+                </div>
+                <div>
+                    <strong style="font-size: 12px; color: #137333;">📊 Live Data Sample Preview:</strong>
+                    <div id="deliv-sample-table" style="margin-top: 6px; overflow-x: auto;"></div>
+                </div>
+                <p id="deliv-zero-cli" style="font-size: 11px; color: #5f6368; margin: 8px 0 0 0; font-style: italic;"></p>
+            </div>
+
             <!-- Tabbed Artifact Viewer -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="tab-spec">Specification (spec.md)</button>
