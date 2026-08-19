@@ -326,8 +326,9 @@ sdo-adk-engine/
 │   └── integration/                # Full E2E domain scenarios (Finance, Sales, Firmware, Marketing, Logistics)
 └── docs/
     ├── architecture.md             # Level 300 GCP Reference Architecture
+    ├── gcp_console_walkthrough.md  # Step-by-step GCP Console Inspection Walkthrough
     ├── demo_script.md              # Interactive Live Demo Walkthrough
     ├── replication_guide.md        # Step-by-step new GCP project onboarding guide
     ├── org_policy_and_iap_guide.md # IAP and constraints/run.managed.requireInvokerIam guide
-    └── validation_matrix.md        # Authoritative 47-point test matrix
+    └── validation_matrix.md        # Authoritative 48-point test matrix
 ```
