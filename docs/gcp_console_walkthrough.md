@@ -238,10 +238,59 @@ OpenTelemetry distributed traces propagate through all state graph nodes, giving
 
 ---
 
+### Step 9: Enterprise Governance & Agent Gateway (Identity, RBAC, Table Allowlists & Policy Interceptor)
+
+The **Agent Gateway** ([`gateway/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway)) acts as the mission-critical security and policy boundary for the entire platform. 
+
+> **Why the Agent Gateway is Critical:**  
+> In current cloud architectures, managed AI agents cannot dynamically inject end-user credentials at runtime (this capability is on Google Cloud's product roadmap). Therefore, the **Agent Gateway acts as the authoritative security boundary**, validating caller credentials upfront, resolving their roles, enforcing table allowlists, and preventing unauthorized cross-domain data access before any LLM prompt is constructed.
+
+- **Console Navigation Path:** `Navigation Menu` $\to$ `Operations` $\to$ `Logging` $\to$ `Logs Explorer`
+- **Direct Console Deep Link:** [**Open Cloud Logging in Google Cloud Console**](https://console.cloud.google.com/logs/query?project=managed-agent-504409)
+
+#### 1. Dual-Identity Protocol & Identity Delegation
+- **Header Extraction ([`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py)):** Ingests user identity from Google Workspace OIDC tokens or IAP assertion headers (`X-Goog-Authenticated-User-Email`, `X-Goog-Iap-Jwt-Assertion`).
+- **Actor Classification:** Strictly distinguishes **Human User Actions** (`actor_type: "human"`, email: `sarah.controller@enterprise.com`, roles: `["financial_controller"]`) from machine **Agent Service Accounts** (`actor_type: "agent"`, `sa-sdo-engine@managed-agent-504409.iam.gserviceaccount.com`).
+
+#### 2. Domain Access Control & Table Allowlist Interception ([`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py))
+- **Role Verification:** Intercepts requests at `INTAKE`. Matches caller email and roles against the target domain's Skill Manifest ([`registry/skills/*.yaml`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/registry/skills)). Unauthorized users (e.g. Sales trying to launch Finance loops) are blocked immediately with `HTTP 403 / RBAC_ACCESS_DENIED`.
+- **Table Allowlist Injection:** Injects only authorized domain tables (e.g. `sdo_finance_demo.invoices`, `billing_events`) into the agent context, strictly isolating other domain datasets (e.g. Sales, HR, Logistics).
+
+#### 3. Prohibited Operation & Destructive SQL Defense
+- **Static AST / Regex Interceptor ([`harnesses/tier1_static_rules.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/harnesses/tier1_static_rules.py)):** Scans all generated specs, SQL queries, and Python files for destructive operations (`DROP TABLE`, `DELETE FROM`, `TRUNCATE`, `ALTER TABLE`, plain-text PII exports). If detected, execution halts before reaching human Gate H1.
+- **Two-Tier Policy Critic ([`harnesses/tier2_policy_critic.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/wallbox/Wallbox%20Public%20Shared/sdo-adk-engine/harnesses/tier2_policy_critic.py)):** Uses `PolicyAuditorAgent` (`gemini-3.7-flash`) to verify SOC 2, GDPR, and scope compliance.
+
+#### 4. How to Inspect Governance Events in Google Cloud Logging:
+
+Run the following query in **Cloud Logging Logs Explorer**:
+```
+resource.type="cloud_run_revision"
+resource.labels.service_name="sdo-adk-cloudrun-a2a"
+jsonPayload.message=~"(PolicyInterceptor|AgentGatewayAuth|INTAKE|RBAC)"
+```
+
+#### 5. Audit Human vs. Agent Invocations in BigQuery:
+
+```sql
+-- Audit all human gate sign-offs and automated agent steps
+SELECT 
+    session_id,
+    node_id,
+    step_name,
+    status,
+    timestamp
+FROM `managed-agent-504409.sdo_analytics.session_traces`
+ORDER BY timestamp DESC
+LIMIT 50;
+```
+
+---
+
 ## 🎯 Verification Checklist for Developers
 
 - [ ] **Cloud Run:** Active revision responding on HTTPS with 0 error rate.
 - [ ] **Gemini Enterprise:** Option A and Option B listed as `ENABLED`.
+- [ ] **Agent Gateway & RBAC:** Policy Interceptor actively verifying domain roles and table allowlists.
 - [ ] **BigQuery:** Datasets `sdo_finance_demo` and `sdo_analytics` populated with tables.
 - [ ] **Cloud Storage:** Bucket `sdo-worm-audit-managed-agent-504409` has Bucket Lock in WORM mode.
 - [ ] **Cloud Trace:** OpenTelemetry spans visible with `gen_ai.request.model=gemini-3.7-flash`.
