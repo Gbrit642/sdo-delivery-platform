@@ -1,12 +1,17 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Environments & Virtualenvs
 .Python
 .venv/
 env/
 venv/
 ENV/
+
+# Distribution / packaging
 build/
 develop-eggs/
 dist/
@@ -22,13 +27,45 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+
+# Environment variables & secrets
 .env
+.env.*
+!.env.example
 *.local
+
+# Credentials & Private Keys
+*.pem
+*.key
+*.pkcs12
+*.pfx
+*.p12
+*credential*.json
+*secret*.json
+service-account*.json
+sa-key*.json
+
+# Terraform
 .terraform/
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
