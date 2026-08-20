@@ -432,10 +432,13 @@ async def chat_webhook(request: Request):
 
 
 @app.api_route("/a2a/app/.well-known/agent-card.json", methods=["GET", "POST"])
+@app.api_route("/.well-known/agent-card.json", methods=["GET", "POST"])
+@app.api_route("/agent-card.json", methods=["GET", "POST"])
 @app.api_route("/a2a/app", methods=["GET", "POST"])
 @app.api_route("/a2a/app/", methods=["GET", "POST"])
 @app.api_route("/a2a/app/messages", methods=["POST"])
 @app.api_route("/a2a/messages", methods=["POST"])
+@app.api_route("/messages", methods=["POST"])
 @app.api_route("/a2a", methods=["GET", "POST"])
 @app.api_route("/a2a/", methods=["GET", "POST"])
 async def a2a_endpoint(request: Request):
@@ -493,12 +496,12 @@ async def a2a_endpoint(request: Request):
         body = {}
 
     req_id = body.get("id", "sdo-a2a-1")
-    is_jsonrpc = "jsonrpc" in body or "method" in body
+    params = body.get("params", {}) if isinstance(body.get("params"), dict) else {}
+    is_jsonrpc = "jsonrpc" in body or "method" in body or "params" in body or "id" in body
 
     # Extract user prompt from various A2A payload formats
     user_text = ""
-    if "params" in body and isinstance(body["params"], dict):
-        params = body["params"]
+    if params:
         if "message" in params:
             msg = params["message"]
             if isinstance(msg, dict):
@@ -532,7 +535,7 @@ async def a2a_endpoint(request: Request):
         user_text = "Generate a weekly financial variance analytical report for invoice reconciliation."
 
     # Identify domain from request context or explicit field
-    domain_override = body.get("node_id") or body.get("domain") or (params.get("node_id") if isinstance(params, dict) else None)
+    domain_override = body.get("node_id") or body.get("domain") or params.get("node_id") or params.get("domain")
     if domain_override:
         domain = str(domain_override).lower()
     else:
@@ -570,63 +573,80 @@ async def a2a_endpoint(request: Request):
         f"to review the specification and approve Gate H1."
     )
 
+    artifacts_list = [
+        {"name": k, "uri": str(v)}
+        for k, v in state.gcs_artifact_uris.items()
+    ]
+
+    a2a_result = {
+        "messageId": f"msg-{state.loop_id}",
+        "role": "agent",
+        "parts": [
+            {
+                "text": reply_text,
+            }
+        ],
+        "contextId": f"ctx-{state.loop_id}",
+        "taskId": state.loop_id,
+        "id": state.loop_id,
+        "status": state.current_state,
+        "artifacts": artifacts_list,
+        "content": reply_text,
+        "text": reply_text,
+        "messages": [
+            {
+                "role": "agent",
+                "parts": [{"text": reply_text}],
+                "content": reply_text,
+            }
+        ],
+        "loop_id": state.loop_id,
+        "current_state": state.current_state,
+    }
+
     if is_jsonrpc:
         response_payload = {
             "jsonrpc": "2.0",
             "id": req_id,
-            "result": {
-                "role": "assistant",
-                "content": reply_text,
-                "text": reply_text,
-                "messages": [
-                    {
-                        "role": "assistant",
-                        "content": reply_text,
-                    }
-                ],
-                "artifacts": state.gcs_artifact_uris,
-                "loop_id": state.loop_id,
-                "current_state": state.current_state,
-            },
+            "result": a2a_result,
         }
     else:
-        response_payload = {
-            "role": "assistant",
-            "content": reply_text,
-            "text": reply_text,
-            "loop_id": state.loop_id,
-            "current_state": state.current_state,
-        }
+        response_payload = a2a_result
 
-    # Determine if client expects Server-Sent Events (SSE) streaming
+    # Determine if client explicitly requests non-streaming JSON without SSE
     accept_header = request.headers.get("accept", "").lower()
-    params_dict = body.get("params", {}) if isinstance(body.get("params"), dict) else {}
-    streaming_requested = (
-        "text/event-stream" in accept_header
-        or body.get("streaming") is True
+    streaming_flag = (
+        body.get("streaming") is True
         or body.get("stream") is True
-        or params_dict.get("streaming") is True
-        or params_dict.get("stream") is True
+        or params.get("streaming") is True
+        or params.get("stream") is True
         or request.query_params.get("alt") == "sse"
         or request.query_params.get("stream") == "true"
     )
+    explicit_json = (
+        "application/json" in accept_header
+        and "text/event-stream" not in accept_header
+        and "*/*" not in accept_header
+        and not streaming_flag
+    )
 
-    if streaming_requested:
-        async def sse_generator():
-            data_str = json.dumps(response_payload)
-            yield f"event: message\ndata: {data_str}\n\n"
+    if explicit_json:
+        return JSONResponse(content=response_payload)
 
-        return StreamingResponse(
-            sse_generator(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
-        )
+    # Default to Server-Sent Events (SSE) streaming for A2A and Gemini Enterprise
+    async def sse_generator():
+        data_str = json.dumps(response_payload)
+        yield f"event: message\ndata: {data_str}\n\n"
 
-    return JSONResponse(content=response_payload)
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # Mount Static Files for Web Dashboard UI
@@ -635,7 +655,7 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
-@app.api_route("/", methods=["GET", "HEAD", "POST"], response_class=HTMLResponse)
+@app.api_route("/", methods=["GET", "HEAD", "POST"])
 async def serve_dashboard(request: Request):
     """Serve Interactive Web Dashboard for GET/HEAD, or handle A2A JSON-RPC for POST."""
     if request.method == "POST":

@@ -153,15 +153,22 @@ def test_chat_webhook_flow(client: TestClient):
 
 def test_a2a_discovery_and_message_flow(client: TestClient):
     """Test A2A Agent Card GET, JSON-RPC message execution POST, and SSE streaming from Gemini Enterprise."""
-    # 1. Test Agent Card GET
-    card_resp = client.get("/a2a/app/.well-known/agent-card.json")
-    assert card_resp.status_code == 200
-    card = card_resp.json()
-    assert "name" in card
-    assert "skills" in card
-    assert card["capabilities"]["streaming"] is True
+    # 1. Test Agent Card GET across all discovery routes
+    for path in [
+        "/a2a/app/.well-known/agent-card.json",
+        "/.well-known/agent-card.json",
+        "/agent-card.json",
+        "/a2a/app",
+        "/a2a",
+    ]:
+        card_resp = client.get(path)
+        assert card_resp.status_code == 200, f"Failed GET for {path}"
+        card = card_resp.json()
+        assert "name" in card
+        assert "skills" in card
+        assert card["capabilities"]["streaming"] is True
 
-    # 2. Test A2A Non-Streaming JSON POST (Accept: application/json)
+    # 2. Test A2A Non-Streaming JSON POST (Accept: application/json without streaming)
     rpc_resp = client.post(
         "/a2a/app/.well-known/agent-card.json",
         headers={"Accept": "application/json"},
@@ -181,7 +188,10 @@ def test_a2a_discovery_and_message_flow(client: TestClient):
     assert "application/json" in rpc_resp.headers["content-type"]
     rpc_data = rpc_resp.json()
     assert "result" in rpc_data
-    assert rpc_data["result"]["role"] == "assistant"
+    assert rpc_data["result"]["role"] == "agent"
+    assert "parts" in rpc_data["result"]
+    assert "messageId" in rpc_data["result"]
+    assert isinstance(rpc_data["result"]["artifacts"], list)
     assert "Autonomous SDO Platform" in rpc_data["result"]["content"]
     assert "WAIT_GATE_H1" in rpc_data["result"]["content"]
 
@@ -209,7 +219,27 @@ def test_a2a_discovery_and_message_flow(client: TestClient):
     assert "Autonomous SDO Platform" in sse_text
     assert "WAIT_GATE_H1" in sse_text
 
-    # 4. Test Root POST endpoint (A2A forward on /)
+    # 4. Test A2A default SSE Streaming on Accept: */* or missing Accept header
+    wildcard_resp = client.post(
+        "/a2a/messages",
+        headers={"Accept": "*/*"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "wildcard-msg-1",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "role": "user",
+                    "content": "Create an automated sales pipeline conversion view.",
+                }
+            },
+        },
+    )
+    assert wildcard_resp.status_code == 200
+    assert "text/event-stream" in wildcard_resp.headers["content-type"]
+    assert "SALES" in wildcard_resp.text
+
+    # 5. Test Root POST endpoint (A2A forward on /)
     root_post_resp = client.post(
         "/",
         headers={"Accept": "text/event-stream"},
@@ -228,3 +258,15 @@ def test_a2a_discovery_and_message_flow(client: TestClient):
     assert root_post_resp.status_code == 200
     assert "text/event-stream" in root_post_resp.headers["content-type"]
     assert "MARKETING" in root_post_resp.text
+
+    # 6. Test direct /messages endpoint with simplified payload
+    direct_msg_resp = client.post(
+        "/messages",
+        json={
+            "input": "Aggregate hourly charger error logs and telemetry metrics across Pulsar Plus devices.",
+            "node_id": "firmware",
+        },
+    )
+    assert direct_msg_resp.status_code == 200
+    assert "text/event-stream" in direct_msg_resp.headers["content-type"]
+    assert "FIRMWARE" in direct_msg_resp.text

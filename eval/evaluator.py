@@ -161,7 +161,88 @@ class SDOAgentEvaluator:
         return cls.evaluate_loop_state(state, executed_steps)
 
     @classmethod
-    async def run_benchmark_suite(cls, benchmarks_path: Path | str | None = None) -> list[EvaluationScoreCard]:
+    async def evaluate_a2a_benchmark(cls, benchmark_item: dict[str, Any], client: Any = None) -> EvaluationScoreCard:
+        """Evaluate an A2A message exchange against benchmark standards for Option A."""
+        from fastapi.testclient import TestClient
+        from web.app import app
+
+        node_id = benchmark_item.get("node_id", "finance")
+        brief = benchmark_item.get("brief", "Automated deliverable brief.")
+        bench_id = benchmark_item.get("benchmark_id", f"BENCH-{node_id.upper()}")
+
+        test_client = client or TestClient(app)
+        resp = test_client.post(
+            "/a2a/app/.well-known/agent-card.json",
+            headers={"Accept": "text/event-stream"},
+            json={
+                "jsonrpc": "2.0",
+                "id": f"eval-{bench_id}",
+                "method": "message/send",
+                "params": {
+                    "node_id": node_id,
+                    "message": {
+                        "role": "user",
+                        "content": brief,
+                    },
+                },
+            },
+        )
+
+        sse_ok = resp.status_code == 200 and "text/event-stream" in resp.headers.get("content-type", "")
+        raw_text = resp.text
+        has_event = "event: message" in raw_text and "data: {" in raw_text
+
+        data_json: dict[str, Any] = {}
+        for line in raw_text.splitlines():
+            if line.startswith("data: "):
+                try:
+                    data_json = json.loads(line[6:])
+                    break
+                except Exception:
+                    pass
+
+        res_payload = data_json.get("result", {})
+        has_reply = bool(res_payload.get("content") or res_payload.get("text"))
+        has_artifacts = bool(res_payload.get("artifacts"))
+        has_loop_id = bool(res_payload.get("loop_id"))
+        correct_domain = node_id.upper() in res_payload.get("content", "")
+
+        protocol_score = 1.0 if (sse_ok and has_event and has_reply) else 0.0
+        artifact_score = 1.0 if has_artifacts else 0.5
+        routing_score = 1.0 if correct_domain else 0.5
+        lifecycle_score = 1.0 if has_loop_id and res_payload.get("current_state") == "WAIT_GATE_H1" else 0.0
+
+        aggregate = round(
+            (protocol_score * 0.35)
+            + (routing_score * 0.25)
+            + (artifact_score * 0.20)
+            + (lifecycle_score * 0.20),
+            2,
+        )
+        passed = aggregate >= 0.85
+        summary = (
+            f"Option A (A2A) Quality Index: {aggregate * 100:.1f}% (SSE Protocol: {protocol_score:.2f}, "
+            f"Domain Routing: {routing_score:.2f}, Artifacts: {artifact_score:.2f}, Lifecycle: {lifecycle_score:.2f})"
+        )
+
+        return EvaluationScoreCard(
+            loop_id=bench_id,
+            node_id=node_id,
+            gherkin_contract_score=protocol_score,
+            graph_conformance_score=lifecycle_score,
+            skill_compliance_score=routing_score,
+            sandbox_reliability_score=artifact_score,
+            aggregate_score=aggregate,
+            passed=passed,
+            summary=summary,
+        )
+
+    @classmethod
+    async def run_benchmark_suite(
+        cls,
+        benchmarks_path: Path | str | None = None,
+        mode: str = "option_b_stategraph",
+    ) -> list[EvaluationScoreCard]:
         """Load benchmark JSON definitions and run evaluation scoring across all items."""
         if benchmarks_path is None:
             benchmarks_path = Path(__file__).parent / "benchmarks" / "finance_benchmarks.json"
@@ -172,7 +253,10 @@ class SDOAgentEvaluator:
 
         score_cards: list[EvaluationScoreCard] = []
         for b in benchmarks:
-            card = await cls.evaluate_benchmark(b)
+            if mode == "option_a_a2a":
+                card = await cls.evaluate_a2a_benchmark(b)
+            else:
+                card = await cls.evaluate_benchmark(b)
             score_cards.append(card)
 
         return score_cards
@@ -183,24 +267,48 @@ if __name__ == "__main__":
 
     async def _main():
         print("Running Gemini Enterprise SDO Agent Offline Evaluation Suite...")
-        cards = await SDOAgentEvaluator.run_benchmark_suite()
-        all_passed = True
+        print("\n--- Option B: Deep ADK StateGraph Trajectory Evaluation ---")
+        cards_b = await SDOAgentEvaluator.run_benchmark_suite(mode="option_b_stategraph")
+        all_passed_b = True
         print("\n" + "=" * 80)
         print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'Gherkin':<8} | {'Graph':<8} | {'Skill':<8} | {'Sandbox':<8} | {'Score':<8} | Status")
         print("-" * 80)
-        for c in cards:
+        for c in cards_b:
             status = "PASS" if c.passed else "FAIL"
             if not c.passed:
-                all_passed = False
+                all_passed_b = False
             print(
                 f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<8.2f} | "
                 f"{c.graph_conformance_score:<8.2f} | {c.skill_compliance_score:<8.2f} | "
                 f"{c.sandbox_reliability_score:<8.2f} | {c.aggregate_score:<8.2f} | {status}"
             )
         print("=" * 80)
-        avg_score = sum(c.aggregate_score for c in cards) / len(cards)
-        print(f"Benchmark Suite Aggregate Score: {avg_score:.2f} (Threshold: 0.85)")
-        print(f"Overall Result: {'PASSED (Certifiable for Production Handover)' if all_passed else 'FAILED'}\n")
-        assert all_passed and avg_score >= 0.85, f"Evaluation score {avg_score} below required threshold 0.85"
+        avg_score_b = sum(c.aggregate_score for c in cards_b) / len(cards_b)
+        print(f"Option B Aggregate Score: {avg_score_b:.2f} (Threshold: 0.85)")
+        print(f"Option B Result: {'PASSED' if all_passed_b else 'FAILED'}\n")
+
+        print("\n--- Option A: A2A Protocol & Deliverable Evaluation ---")
+        cards_a = await SDOAgentEvaluator.run_benchmark_suite(mode="option_a_a2a")
+        all_passed_a = True
+        print("\n" + "=" * 80)
+        print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'SSE Proto':<10} | {'Lifecycle':<10} | {'Routing':<8} | {'Artifacts':<10} | {'Score':<8} | Status")
+        print("-" * 80)
+        for c in cards_a:
+            status = "PASS" if c.passed else "FAIL"
+            if not c.passed:
+                all_passed_a = False
+            print(
+                f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<10.2f} | "
+                f"{c.graph_conformance_score:<10.2f} | {c.skill_compliance_score:<8.2f} | "
+                f"{c.sandbox_reliability_score:<10.2f} | {c.aggregate_score:<8.2f} | {status}"
+            )
+        print("=" * 80)
+        avg_score_a = sum(c.aggregate_score for c in cards_a) / len(cards_a)
+        print(f"Option A Aggregate Score: {avg_score_a:.2f} (Threshold: 0.85)")
+        print(f"Option A Result: {'PASSED' if all_passed_a else 'FAILED'}\n")
+
+        assert all_passed_b and avg_score_b >= 0.85, f"Option B evaluation score {avg_score_b} below threshold"
+        assert all_passed_a and avg_score_a >= 0.85, f"Option A evaluation score {avg_score_a} below threshold"
+        print("All Evaluation Benchmarks across Option A & Option B PASSED.")
 
     asyncio.run(_main())
