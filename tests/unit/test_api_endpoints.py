@@ -149,3 +149,35 @@ def test_chat_webhook_flow(client: TestClient):
     assert msg_resp.status_code == 200
     card_data = msg_resp.json()
     assert "cardsV2" in card_data
+
+
+def test_a2a_discovery_and_message_flow(client: TestClient):
+    """Test A2A Agent Card GET and JSON-RPC message execution POST from Gemini Enterprise."""
+    # 1. Test Agent Card GET
+    card_resp = client.get("/a2a/app/.well-known/agent-card.json")
+    assert card_resp.status_code == 200
+    card = card_resp.json()
+    assert "name" in card
+    assert "skills" in card
+
+    # 2. Test A2A JSON-RPC POST
+    rpc_resp = client.post(
+        "/a2a/app/.well-known/agent-card.json",
+        json={
+            "jsonrpc": "2.0",
+            "id": "gemini-ent-msg-1",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "role": "user",
+                    "content": "Create a financial revenue variance view in BigQuery.",
+                }
+            },
+        },
+    )
+    assert rpc_resp.status_code == 200
+    rpc_data = rpc_resp.json()
+    assert "result" in rpc_data
+    assert rpc_data["result"]["role"] == "assistant"
+    assert "Autonomous SDO Platform" in rpc_data["result"]["content"]
+    assert "WAIT_GATE_H1" in rpc_data["result"]["content"]

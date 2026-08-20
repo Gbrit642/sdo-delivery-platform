@@ -430,52 +430,163 @@ async def chat_webhook(request: Request):
     return {"text": "SDO Bot acknowledged event."}
 
 
-@app.get("/a2a/app/.well-known/agent-card.json")
-async def get_agent_card():
-    """Agent-to-Agent (A2A) Discovery Card for Gemini Enterprise registration."""
+@app.api_route("/a2a/app/.well-known/agent-card.json", methods=["GET", "POST"])
+@app.api_route("/a2a/app", methods=["GET", "POST"])
+@app.api_route("/a2a/app/", methods=["GET", "POST"])
+@app.api_route("/a2a/app/messages", methods=["POST"])
+@app.api_route("/a2a/messages", methods=["POST"])
+async def a2a_endpoint(request: Request):
+    """Agent-to-Agent (A2A) Discovery Card and Message Execution Endpoint."""
+    if request.method == "GET":
+        return {
+            "name": "Enterprise SDO Delivery Platform",
+            "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
+            "version": "0.1.0",
+            "protocolVersion": "1.0",
+            "url": "https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app/a2a/app/.well-known/agent-card.json",
+            "defaultInputModes": ["text"],
+            "defaultOutputModes": ["text"],
+            "capabilities": {
+                "streaming": False,
+            },
+            "skills": [
+                {
+                    "id": "finance_variance",
+                    "name": "Finance FX & Revenue Variance",
+                    "description": "Analyzes invoice reconciliation and FX variance.",
+                    "tags": ["finance", "bigquery"],
+                },
+                {
+                    "id": "sales_pipeline",
+                    "name": "Sales Opportunity Pipeline",
+                    "description": "Aggregates commercial pipeline conversion metrics.",
+                    "tags": ["sales"],
+                },
+                {
+                    "id": "firmware_telemetry",
+                    "name": "Firmware & IoT Telemetry",
+                    "description": "Analyzes OCPP charger logs and device errors.",
+                    "tags": ["firmware", "iot"],
+                },
+                {
+                    "id": "marketing_attribution",
+                    "name": "Marketing Multi-Touch Attribution",
+                    "description": "Calculates customer acquisition cost across channels.",
+                    "tags": ["marketing"],
+                },
+                {
+                    "id": "logistics_turnover",
+                    "name": "Supply Chain & Logistics",
+                    "description": "Monitors warehouse dispatch SLAs and inventory turnover.",
+                    "tags": ["logistics"],
+                },
+            ],
+        }
+
+    # Handle HTTP POST for A2A message execution
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    req_id = body.get("id", "sdo-a2a-1")
+    is_jsonrpc = "jsonrpc" in body or "method" in body
+
+    # Extract user prompt from various A2A payload formats
+    user_text = ""
+    if "params" in body and isinstance(body["params"], dict):
+        params = body["params"]
+        if "message" in params:
+            msg = params["message"]
+            if isinstance(msg, dict):
+                user_text = msg.get("content", "")
+                if not user_text and "parts" in msg:
+                    parts = msg["parts"]
+                    user_text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
+            elif isinstance(msg, str):
+                user_text = msg
+        elif "input" in params:
+            user_text = str(params["input"])
+        elif "query" in params:
+            user_text = str(params["query"])
+    elif "message" in body:
+        msg = body["message"]
+        if isinstance(msg, dict):
+            user_text = msg.get("content", "")
+            if not user_text and "parts" in msg:
+                parts = msg["parts"]
+                user_text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
+        elif isinstance(msg, str):
+            user_text = msg
+    elif "input" in body:
+        user_text = str(body["input"])
+    elif "query" in body:
+        user_text = str(body["query"])
+    elif "text" in body:
+        user_text = str(body["text"])
+
+    if not user_text:
+        user_text = "Generate a weekly financial variance analytical report for invoice reconciliation."
+
+    # Identify domain from request context
+    user_lower = user_text.lower()
+    domain = "finance"
+    if "sale" in user_lower or "crm" in user_lower or "pipeline" in user_lower:
+        domain = "sales"
+    elif "firmware" in user_lower or "iot" in user_lower or "charger" in user_lower:
+        domain = "firmware"
+    elif "market" in user_lower or "campaign" in user_lower or "ad" in user_lower:
+        domain = "marketing"
+    elif "logistics" in user_lower or "ship" in user_lower or "warehouse" in user_lower or "inventory" in user_lower:
+        domain = "logistics"
+
+    # Launch delivery loop
+    create_req = CreateLoopRequest(
+        node_id=domain,
+        brief_text=user_text,
+        owner_email="gemini-enterprise-user@enterprise.com",
+        delivery_path="direct_connector_automation",
+    )
+    state = await create_loop(create_req)
+
+    reply_text = (
+        f"⚡ **Autonomous SDO Platform — Process Initiated**\n\n"
+        f"• **Loop ID:** `{state.loop_id}`\n"
+        f"• **Domain:** {domain.upper()}\n"
+        f"• **Delivery Path:** Direct Connector Automation ($0 compute, <5s)\n"
+        f"• **Current State:** `WAIT_GATE_H1` (Specification Sign-Off Required)\n\n"
+        f"**Specification Summary:**\n"
+        f"Gherkin scenarios and BigQuery schema boundaries configured for '{domain}'.\n\n"
+        f"👉 **Action Required:** Open the [Interactive Web Dashboard](https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app) "
+        f"to review the specification and approve Gate H1."
+    )
+
+    if is_jsonrpc:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "role": "assistant",
+                "content": reply_text,
+                "text": reply_text,
+                "messages": [
+                    {
+                        "role": "assistant",
+                        "content": reply_text,
+                    }
+                ],
+                "artifacts": state.gcs_artifact_uris,
+                "loop_id": state.loop_id,
+                "current_state": state.current_state,
+            },
+        }
+
     return {
-        "name": "Wallbox SDO Delivery Platform",
-        "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
-        "version": "0.1.0",
-        "protocolVersion": "1.0",
-        "url": "https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app/a2a/app/.well-known/agent-card.json",
-        "defaultInputModes": ["text"],
-        "defaultOutputModes": ["text"],
-        "capabilities": {
-            "streaming": True,
-        },
-        "skills": [
-            {
-                "id": "finance_variance",
-                "name": "Finance FX & Revenue Variance",
-                "description": "Analyzes invoice reconciliation and FX variance.",
-                "tags": ["finance", "bigquery"],
-            },
-            {
-                "id": "sales_pipeline",
-                "name": "Sales Opportunity Pipeline",
-                "description": "Aggregates commercial pipeline conversion metrics.",
-                "tags": ["sales"],
-            },
-            {
-                "id": "firmware_telemetry",
-                "name": "Firmware & IoT Telemetry",
-                "description": "Analyzes OCPP charger logs and device errors.",
-                "tags": ["firmware", "iot"],
-            },
-            {
-                "id": "marketing_attribution",
-                "name": "Marketing Multi-Touch Attribution",
-                "description": "Calculates customer acquisition cost across channels.",
-                "tags": ["marketing"],
-            },
-            {
-                "id": "logistics_turnover",
-                "name": "Supply Chain & Logistics",
-                "description": "Monitors warehouse dispatch SLAs and inventory turnover.",
-                "tags": ["logistics"],
-            },
-        ],
+        "role": "assistant",
+        "content": reply_text,
+        "text": reply_text,
+        "loop_id": state.loop_id,
+        "current_state": state.current_state,
     }
 
 
@@ -485,9 +596,12 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
-@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def serve_dashboard():
-    """Serve Interactive Web Dashboard for Chrome browser verification."""
+@app.api_route("/", methods=["GET", "HEAD", "POST"], response_class=HTMLResponse)
+async def serve_dashboard(request: Request):
+    """Serve Interactive Web Dashboard for GET/HEAD, or handle A2A JSON-RPC for POST."""
+    if request.method == "POST":
+        res = await a2a_endpoint(request)
+        return JSONResponse(res)
     index_path = static_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
