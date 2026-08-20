@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -435,11 +436,13 @@ async def chat_webhook(request: Request):
 @app.api_route("/a2a/app/", methods=["GET", "POST"])
 @app.api_route("/a2a/app/messages", methods=["POST"])
 @app.api_route("/a2a/messages", methods=["POST"])
+@app.api_route("/a2a", methods=["GET", "POST"])
+@app.api_route("/a2a/", methods=["GET", "POST"])
 async def a2a_endpoint(request: Request):
     """Agent-to-Agent (A2A) Discovery Card and Message Execution Endpoint."""
     if request.method == "GET":
         return {
-            "name": "Enterprise SDO Delivery Platform",
+            "name": "Wallbox SDO Delivery Platform",
             "description": "Automated Software & Data Delivery Multi-Agent System on GCP (Finance, Sales, Firmware, Marketing, Logistics).",
             "version": "0.1.0",
             "protocolVersion": "1.0",
@@ -447,7 +450,7 @@ async def a2a_endpoint(request: Request):
             "defaultInputModes": ["text"],
             "defaultOutputModes": ["text"],
             "capabilities": {
-                "streaming": False,
+                "streaming": True,
             },
             "skills": [
                 {
@@ -528,17 +531,23 @@ async def a2a_endpoint(request: Request):
     if not user_text:
         user_text = "Generate a weekly financial variance analytical report for invoice reconciliation."
 
-    # Identify domain from request context
-    user_lower = user_text.lower()
-    domain = "finance"
-    if "sale" in user_lower or "crm" in user_lower or "pipeline" in user_lower:
-        domain = "sales"
-    elif "firmware" in user_lower or "iot" in user_lower or "charger" in user_lower:
-        domain = "firmware"
-    elif "market" in user_lower or "campaign" in user_lower or "ad" in user_lower:
-        domain = "marketing"
-    elif "logistics" in user_lower or "ship" in user_lower or "warehouse" in user_lower or "inventory" in user_lower:
-        domain = "logistics"
+    # Identify domain from request context or explicit field
+    domain_override = body.get("node_id") or body.get("domain") or (params.get("node_id") if isinstance(params, dict) else None)
+    if domain_override:
+        domain = str(domain_override).lower()
+    else:
+        user_lower = user_text.lower()
+        domain = "finance"
+        if "market" in user_lower or "campaign" in user_lower or "cac" in user_lower:
+            domain = "marketing"
+        elif "firmware" in user_lower or "iot" in user_lower or "charger" in user_lower or "telemetry" in user_lower:
+            domain = "firmware"
+        elif "logistics" in user_lower or "ship" in user_lower or "warehouse" in user_lower or "inventory" in user_lower:
+            domain = "logistics"
+        elif "sale" in user_lower or "crm" in user_lower or "pipeline" in user_lower:
+            domain = "sales"
+        elif "finance" in user_lower or "invoice" in user_lower or "currency" in user_lower or "revenue" in user_lower or "variance" in user_lower:
+            domain = "finance"
 
     # Launch delivery loop
     create_req = CreateLoopRequest(
@@ -562,7 +571,7 @@ async def a2a_endpoint(request: Request):
     )
 
     if is_jsonrpc:
-        return {
+        response_payload = {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
@@ -580,14 +589,44 @@ async def a2a_endpoint(request: Request):
                 "current_state": state.current_state,
             },
         }
+    else:
+        response_payload = {
+            "role": "assistant",
+            "content": reply_text,
+            "text": reply_text,
+            "loop_id": state.loop_id,
+            "current_state": state.current_state,
+        }
 
-    return {
-        "role": "assistant",
-        "content": reply_text,
-        "text": reply_text,
-        "loop_id": state.loop_id,
-        "current_state": state.current_state,
-    }
+    # Determine if client expects Server-Sent Events (SSE) streaming
+    accept_header = request.headers.get("accept", "").lower()
+    params_dict = body.get("params", {}) if isinstance(body.get("params"), dict) else {}
+    streaming_requested = (
+        "text/event-stream" in accept_header
+        or body.get("streaming") is True
+        or body.get("stream") is True
+        or params_dict.get("streaming") is True
+        or params_dict.get("stream") is True
+        or request.query_params.get("alt") == "sse"
+        or request.query_params.get("stream") == "true"
+    )
+
+    if streaming_requested:
+        async def sse_generator():
+            data_str = json.dumps(response_payload)
+            yield f"event: message\ndata: {data_str}\n\n"
+
+        return StreamingResponse(
+            sse_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    return JSONResponse(content=response_payload)
 
 
 # Mount Static Files for Web Dashboard UI
@@ -600,8 +639,7 @@ if static_dir.exists():
 async def serve_dashboard(request: Request):
     """Serve Interactive Web Dashboard for GET/HEAD, or handle A2A JSON-RPC for POST."""
     if request.method == "POST":
-        res = await a2a_endpoint(request)
-        return JSONResponse(res)
+        return await a2a_endpoint(request)
     index_path = static_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path)

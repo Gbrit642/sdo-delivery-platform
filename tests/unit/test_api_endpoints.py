@@ -152,17 +152,19 @@ def test_chat_webhook_flow(client: TestClient):
 
 
 def test_a2a_discovery_and_message_flow(client: TestClient):
-    """Test A2A Agent Card GET and JSON-RPC message execution POST from Gemini Enterprise."""
+    """Test A2A Agent Card GET, JSON-RPC message execution POST, and SSE streaming from Gemini Enterprise."""
     # 1. Test Agent Card GET
     card_resp = client.get("/a2a/app/.well-known/agent-card.json")
     assert card_resp.status_code == 200
     card = card_resp.json()
     assert "name" in card
     assert "skills" in card
+    assert card["capabilities"]["streaming"] is True
 
-    # 2. Test A2A JSON-RPC POST
+    # 2. Test A2A Non-Streaming JSON POST (Accept: application/json)
     rpc_resp = client.post(
         "/a2a/app/.well-known/agent-card.json",
+        headers={"Accept": "application/json"},
         json={
             "jsonrpc": "2.0",
             "id": "gemini-ent-msg-1",
@@ -176,8 +178,53 @@ def test_a2a_discovery_and_message_flow(client: TestClient):
         },
     )
     assert rpc_resp.status_code == 200
+    assert "application/json" in rpc_resp.headers["content-type"]
     rpc_data = rpc_resp.json()
     assert "result" in rpc_data
     assert rpc_data["result"]["role"] == "assistant"
     assert "Autonomous SDO Platform" in rpc_data["result"]["content"]
     assert "WAIT_GATE_H1" in rpc_data["result"]["content"]
+
+    # 3. Test A2A SSE Streaming POST (Accept: text/event-stream)
+    sse_resp = client.post(
+        "/a2a/app/.well-known/agent-card.json",
+        headers={"Accept": "text/event-stream"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "gemini-ent-msg-stream-1",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "role": "user",
+                    "content": "Create a financial revenue variance view in BigQuery.",
+                }
+            },
+        },
+    )
+    assert sse_resp.status_code == 200
+    assert "text/event-stream" in sse_resp.headers["content-type"]
+    sse_text = sse_resp.text
+    assert "event: message" in sse_text
+    assert "data: {" in sse_text
+    assert "Autonomous SDO Platform" in sse_text
+    assert "WAIT_GATE_H1" in sse_text
+
+    # 4. Test Root POST endpoint (A2A forward on /)
+    root_post_resp = client.post(
+        "/",
+        headers={"Accept": "text/event-stream"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "root-post-msg-1",
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "role": "user",
+                    "content": "Build marketing multi-touch attribution pipeline.",
+                }
+            },
+        },
+    )
+    assert root_post_resp.status_code == 200
+    assert "text/event-stream" in root_post_resp.headers["content-type"]
+    assert "MARKETING" in root_post_resp.text

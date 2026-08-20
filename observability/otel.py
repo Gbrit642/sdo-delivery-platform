@@ -18,6 +18,14 @@ try:
     provider = TracerProvider()
     memory_exporter = InMemorySpanExporter()
     provider.add_span_processor(SimpleSpanProcessor(memory_exporter))
+
+    try:
+        from opentelemetry.exporter.gcp_trace import CloudTraceSpanExporter
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        provider.add_span_processor(BatchSpanProcessor(CloudTraceSpanExporter()))
+    except Exception:
+        pass
+
     trace.set_tracer_provider(provider)
     tracer = trace.get_tracer("sdo.adk.engine", "0.1.0")
 except ImportError:
