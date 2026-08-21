@@ -69,3 +69,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Agents & Skills local cache
+.agents/
+.claude/
