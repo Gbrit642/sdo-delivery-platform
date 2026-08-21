@@ -136,10 +136,16 @@ flowchart TD
 
 ## 🚪 Agent Gateway & Dual-Identity Protocol
 
-Located in [`gateway/`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway):
-- **OIDC & IAP Header Extraction ([`gateway/auth.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/auth.py)):** Authenticates incoming user identities from Google Workspace or Identity-Aware Proxy (`X-Goog-Authenticated-User-Email`).
+Located in [`gateway/`](gateway):
+- **OIDC & IAP Header Extraction ([`gateway/auth.py`](gateway/auth.py)):** Authenticates incoming user identities from Google Workspace or Identity-Aware Proxy (`X-Goog-Authenticated-User-Email`).
 - **Dual-Identity Classification:** Strictly separates **Human User Actions** from **Machine Agent Service Accounts** (`sa-sdo-{node}@managed-agent-504409.iam.gserviceaccount.com`).
-- **Domain RBAC & Table Allowlisting ([`gateway/policy_interceptor.py`](file:///usr/local/google/home/papelamine/Documents/Google/Dev/enterprise/Wallbox%20Public%20Shared/sdo-adk-engine/gateway/policy_interceptor.py)):** Intercepts initiation at `INTAKE`, matches roles against the domain manifest, and blocks unauthorized cross-tenant requests before LLM invocation.
+- **Domain RBAC & Table Allowlisting ([`gateway/policy_interceptor.py`](gateway/policy_interceptor.py)):** Intercepts initiation at `INTAKE`, matches roles against the domain manifest, and blocks unauthorized cross-tenant requests before LLM invocation.
+
+### 🌐 Interactive Visualizer: Multi-MCP Credential Delegation (BigQuery + Databricks)
+Explore how the Agent Gateway securely delegates credentials across Google Cloud (BigQuery IAM) and external SaaS platforms (Databricks, Salesforce, NetSuite, Jira) without exposing tokens to the LLM:
+
+👉 **[Launch Live Cloud Run Visualizer: Enterprise Authentication & Credential Delegation Flow](https://html-interactive-visualizer-c2rnccvaca-ew.a.run.app/auth_credential_delegation_flow.html)**  
+*(Local file: [`docs/03_post_implementation_and_operations/auth_credential_delegation_flow.html`](docs/03_post_implementation_and_operations/auth_credential_delegation_flow.html))*
 
 ---
 
