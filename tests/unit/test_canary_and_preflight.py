@@ -69,3 +69,27 @@ def test_parse_sse_events_parser():
     assert len(events) == 2
     assert events[0]["id"] == "1"
     assert events[1]["id"] == "2"
+
+
+def test_get_gcloud_token_fallback(monkeypatch):
+    """Assert get_gcloud_token uses ADC fallback if gcloud CLI fails."""
+    import subprocess
+    from scripts.run_canary_checks import get_gcloud_token
+
+    def fake_subprocess_run(*a, **kw):
+        raise FileNotFoundError("gcloud not found")
+
+    monkeypatch.setattr(subprocess, "check_output", fake_subprocess_run)
+
+    # Mock google.auth.default
+    class FakeCreds:
+        token = "mock-adc-token-123"
+        def refresh(self, req):
+            self.token = "refreshed-adc-token-456"
+
+    import google.auth
+    monkeypatch.setattr(google.auth, "default", lambda: (FakeCreds(), "test-project"))
+
+    token = get_gcloud_token()
+    assert token == "refreshed-adc-token-456"
+

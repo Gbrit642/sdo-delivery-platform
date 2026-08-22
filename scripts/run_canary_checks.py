@@ -56,14 +56,26 @@ class CanaryCheckResult:
 
 
 def get_gcloud_token() -> str:
-    """Retrieve active gcloud OAuth access token."""
+    """Retrieve active GCP OAuth access token via gcloud or google-auth ADC."""
     try:
         token = subprocess.check_output(["gcloud", "auth", "print-access-token"], stderr=subprocess.DEVNULL).decode().strip()
-        if not token:
-            raise RuntimeError("Empty access token returned by gcloud auth.")
-        return token
+        if token:
+            return token
+    except Exception:
+        pass
+
+    try:
+        import google.auth
+        import google.auth.transport.requests
+        creds, _ = google.auth.default()
+        req = google.auth.transport.requests.Request()
+        creds.refresh(req)
+        if creds.token:
+            return creds.token
     except Exception as exc:
-        raise RuntimeError(f"Failed to fetch gcloud access token: {exc}") from exc
+        raise RuntimeError(f"Failed to fetch GCP access token via gcloud or ADC: {exc}") from exc
+
+    raise RuntimeError("Empty access token returned by authentication provider.")
 
 
 def parse_sse_events(raw_sse_text: str) -> List[Dict[str, Any]]:
@@ -287,6 +299,8 @@ def run_canaries(
                 results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option A (Vertex AI Reasoning Engine)", f"Agent:{agent_id_a}", False, 0.1, f"Invalid binding or state: state={state}, binding={re_binding}"))
         else:
             results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option A (Vertex AI Reasoning Engine)", f"Agent:{agent_id_a}", False, 0.1, f"Agent ID {agent_id_a} not found in Gemini Enterprise assistant catalog"))
+    else:
+        results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option A (Vertex AI Reasoning Engine)", f"Agent:{agent_id_a}", False, 0.1, "Catalog unavailable or empty; cannot verify Option A binding"))
 
     # Check 2.3: Verify Option B in Agent Catalog
     if agents_list:
@@ -301,6 +315,8 @@ def run_canaries(
                 results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option B (Cloud Run A2A Bridge)", f"Agent:{agent_id_b}", False, 0.1, f"Invalid binding or state: state={state}"))
         else:
             results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option B (Cloud Run A2A Bridge)", f"Agent:{agent_id_b}", False, 0.1, f"Agent ID {agent_id_b} not found in Gemini Enterprise assistant catalog"))
+    else:
+        results.append(CanaryCheckResult("Level 2 (Assistant API)", "Option B (Cloud Run A2A Bridge)", f"Agent:{agent_id_b}", False, 0.1, "Catalog unavailable or empty; cannot verify Option B binding"))
 
     return results
 

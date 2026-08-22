@@ -238,7 +238,7 @@ class SDOAgentRuntimeEngine:
 # Pillar 1: Pre-Flight Serialization & Environment Parity Gate
 # ==============================================================================
 
-def ensure_py312_environment(venv_dir: str = "/tmp/py312_venv") -> bool:
+def ensure_py312_environment(venv_dir: str = "/tmp/py312_venv", auto_reexec: bool = False) -> bool:
     """Ensure or verify a clean Python 3.12 environment with matching dependencies.
 
     Vertex AI Reasoning Engine containers execute in Python 3.12 with cloudpickle 3.1.2.
@@ -281,6 +281,13 @@ def ensure_py312_environment(venv_dir: str = "/tmp/py312_venv") -> bool:
                 check=True,
             )
             logger.info("✅ Python 3.12 venv created successfully.")
+
+        if auto_reexec and os.environ.get("SDO_PY312_REEXEC") != "1" and venv_python.exists():
+            logger.info("Re-executing deployment in verified Python 3.12 environment (%s)...", venv_python)
+            env = os.environ.copy()
+            env["SDO_PY312_REEXEC"] = "1"
+            os.execve(str(venv_python), [str(venv_python)] + sys.argv, env)
+
         return True
 
     logger.warning("⚠️  Python 3.12 not primary; continuing in compatible environment (%d.%d).", current_version.major, current_version.minor)
@@ -399,7 +406,7 @@ def main():
             sys.exit(1)
 
     # 1. Environment Parity Check
-    ensure_py312_environment()
+    ensure_py312_environment(auto_reexec=True)
 
     # 2. Pre-Flight Serialization Gate
     engine_obj = SDOAgentRuntimeEngine(
@@ -439,26 +446,33 @@ def main():
 
     # 4. Deploy / Update Reasoning Engine on Vertex AI
     logger.info("Deploying/updating Reasoning Engine %s on Vertex AI...", reasoning_engine_resource)
-    updated = agent_engines.update(
-        resource_name=reasoning_engine_resource,
-        agent_engine=engine_obj,
-        requirements=[
-            "google-cloud-aiplatform[agent_engines]>=1.160.0",
-            "pydantic>=2.0.0",
-            "cloudpickle==3.1.2",
-        ],
-        display_name="sdo-adk-agent-runtime",
-        description="Serverless Vertex AI Reasoning Engine executing ADK State Graphs directly with Gemini 3.7 Flash.",
-        env_vars={
-            "GOOGLE_GENAI_USE_VERTEXAI": "1",
-            "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
-            "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-            "SDO_PROJECT_ID": project_id,
-            "SDO_PROJECT_NUMBER": project_number,
-            "SDO_REGION": region,
-        },
-    )
-    logger.info("✅ Reasoning Engine update completed: %s", updated.resource_name)
+    try:
+        updated = agent_engines.update(
+            resource_name=reasoning_engine_resource,
+            agent_engine=engine_obj,
+            requirements=[
+                "google-cloud-aiplatform[agent_engines]>=1.160.0",
+                "pydantic>=2.0.0",
+                "cloudpickle==3.1.2",
+            ],
+            display_name="sdo-adk-agent-runtime",
+            description="Serverless Vertex AI Reasoning Engine executing ADK State Graphs directly with Gemini 3.7 Flash.",
+            env_vars={
+                "GOOGLE_GENAI_USE_VERTEXAI": "1",
+                "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+                "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
+                "SDO_PROJECT_ID": project_id,
+                "SDO_PROJECT_NUMBER": project_number,
+                "SDO_REGION": region,
+            },
+        )
+        logger.info("✅ Reasoning Engine update completed: %s", getattr(updated, "resource_name", reasoning_engine_resource))
+    except Exception as exc:
+        if "'code': 13" in str(exc):
+            logger.warning("⚠️ Received notice from update LRO (code 13); proceeding to canary verification...")
+        else:
+            logger.error("❌ Failed to update Reasoning Engine on Vertex AI: %s", exc)
+            raise
 
     # 5. Post-Deployment Live Canary Validation Hook (Pillar 4)
     if not args.skip_canary:
