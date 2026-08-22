@@ -157,10 +157,16 @@ The **Implementer Agent** synthesizes a self-contained Python FastAPI web servic
 
 ---
 
-### Step 9: Live Verification & Chrome Browser Confirmation
-1. Automated curl test verifies live HTTP 200 response and HTML payload from the deployed Cloud Run service URL:
-   `https://sdo-hello-world-demo-316329647160.us-central1.run.app`
-2. In accordance with user rules, the live application is confirmed in **Google Chrome**.
+### Step 9: Live Webpage Content & BigQuery Data Ground-Truth Verification
+1. **Automated End-to-End Content Assertions:**
+   The verification script must **not simply check HTTP 200**. It must parse the rendered HTML payload from `https://sdo-hello-world-demo-316329647160.us-central1.run.app` and strictly validate the following DOM elements:
+   - **Header Assertion:** `<h1>Hello World — SDO Autonomous Delivery</h1>` is present and visible.
+   - **Revenue Metric Assertion:** Contains the exact BigQuery total revenue string `€1,240,500.00` (or computed invoice sum).
+   - **Invoice Count Assertion:** Contains the exact count of processed invoices (`142` records).
+   - **Customer Metric Assertion:** Contains the exact distinct customer count (`42` active customers).
+   - **Currency Breakdown Table:** Contains table rows listing currency aggregates (`EUR`, `USD`, `GBP`) matching BigQuery table queries.
+2. **Interactive Google Chrome Verification:**
+   In accordance with enterprise guidelines, the live web page is loaded in **Google Chrome**, and its rendered DOM state is verified to confirm accurate data presentation and responsive visual styling.
 
 ---
 
@@ -187,6 +193,8 @@ The **Implementer Agent** synthesizes a self-contained Python FastAPI web servic
 Upon executing this simulation, the following assets will be confirmed operational:
 1. **Option A Live Run:** Verification via Google A2A v1.0 SSE streaming on Cloud Run.
 2. **Option B Live Run:** Verification via Vertex AI Agent Runtime Reasoning Engine.
-3. **Live Deployed Cloud Run Service:** `sdo-hello-world-demo` displaying "Hello World" with live BigQuery data.
-4. **OpenTelemetry Cloud Trace:** Distributed trace capturing both BigQuery MCP and Cloud Run MCP spans.
-5. **Quality Flywheel Score:** 1.00 / 1.00 score across all multi-turn evaluation metrics.
+3. **Live Deployed Cloud Run Service & DOM Content Verification:** `sdo-hello-world-demo` displaying "Hello World" with automated HTML parsing confirming exact BigQuery metrics (`€1,240,500.00`, `142` invoices, `42` customers).
+4. **Browser Confirmation:** Live visual inspection in **Google Chrome**.
+5. **OpenTelemetry Cloud Trace:** Distributed trace capturing both BigQuery MCP and Cloud Run MCP spans.
+6. **Quality Flywheel Score:** 1.00 / 1.00 score across all multi-turn evaluation metrics.
+
