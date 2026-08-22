@@ -133,6 +133,57 @@ class SDOAgentRuntimeEngine:
 
         return response_text
 
+    def register_operations(self) -> dict[str, list[str]]:
+        """Declare exposed operations for Vertex AI and Gemini Enterprise."""
+        return {
+            "stream": ["stream_query", "streaming_agent_run_with_events"],
+            "async_stream": ["async_stream_query", "async_streaming_agent_run_with_events"],
+        }
+
+    def streaming_agent_run_with_events(self, request_json: str | dict[str, Any] = "{}", **kwargs: Any) -> Iterator[dict[str, Any]]:
+        """Handle Gemini Enterprise / Discovery Engine streaming execution."""
+        data: dict[str, Any] = {}
+        if isinstance(request_json, str):
+            try:
+                data = json.loads(request_json)
+            except Exception:
+                data = {"message": request_json}
+        elif isinstance(request_json, dict):
+            data = request_json
+
+        for k, v in kwargs.items():
+            data.setdefault(k, v)
+
+        message = data.get("message") or data.get("prompt") or ""
+        user_id = data.get("user_id") or "sarah.controller@wallbox.com"
+        session_id = data.get("session_id")
+
+        if isinstance(message, dict):
+            parts = message.get("parts", [])
+            text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict)) or message.get("content", "")
+        elif isinstance(message, list):
+            text = " ".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in message)
+        else:
+            text = str(message)
+
+        reply = self._execute_sdo_workflow(text, user_id=user_id)
+
+        event = {
+            "content": {
+                "role": "model",
+                "parts": [{"text": reply}],
+            },
+            "event_type": "event",
+        }
+        if session_id:
+            event["session_id"] = session_id
+        yield event
+
+    async def async_streaming_agent_run_with_events(self, request_json: str | dict[str, Any] = "{}", **kwargs: Any):
+        """Handle Gemini Enterprise / Discovery Engine async streaming execution."""
+        for event in self.streaming_agent_run_with_events(request_json, **kwargs):
+            yield event
+
     def query(self, message: str | dict[str, Any], user_id: str = "default_user", session_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
         if isinstance(message, dict):
             parts = message.get("parts", [])
