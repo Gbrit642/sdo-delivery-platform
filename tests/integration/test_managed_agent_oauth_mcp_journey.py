@@ -88,6 +88,20 @@ async def test_gateway_credential_injection_to_mcp():
         )
     assert "Zero credentials in sandbox violation" in str(exc_info.value)
 
+    with pytest.raises(PermissionError):
+        await live_client_unauth.get_service_status(
+            service_name="sdo-hello-world-demo",
+            region="us-central1",
+            auth_token="",
+        )
+
+    with pytest.raises(PermissionError):
+        await live_client_unauth.delete_service(
+            service_name="sdo-hello-world-demo",
+            region="us-central1",
+            auth_token="   ",
+        )
+
     # 6. Verify zero secrets/credentials stored on filesystem
     assert not os.path.exists("/workspace/.config/gcloud/credentials")
     assert not os.path.exists("/workspace/service_account_key.json")
@@ -204,6 +218,33 @@ async def test_bigquery_and_cloud_run_dual_mcp_execution():
             region="asia-east1",
         )
     assert "Policy violation: region 'asia-east1' is not in allowed regions" in str(exc_info_region.value)
+
+    # 6. Enforce max_instances policy limit
+    with pytest.raises(ValueError) as exc_info_instances:
+        await run_client.deploy_service(
+            service_name="sdo-hello-world-scaled",
+            region="us-central1",
+            max_instances=10,
+        )
+    assert "Policy violation: requested max_instances (10) exceeds allowed limit" in str(exc_info_instances.value)
+
+    # 7. Enforce min_instances <= max_instances boundary
+    with pytest.raises(ValueError) as exc_info_min:
+        await run_client.deploy_service(
+            service_name="sdo-hello-world-boundary",
+            region="us-central1",
+            min_instances=5,
+            max_instances=3,
+        )
+    assert "Policy violation: min_instances (5) cannot exceed max_instances (3)" in str(exc_info_min.value)
+
+    # 8. Test get_service_status and delete_service
+    status = await run_client.get_service_status("sdo-hello-world-demo", region="us-central1")
+    assert status.service_name == "sdo-hello-world-demo"
+    assert status.status == "READY"
+
+    delete_res = await run_client.delete_service("sdo-hello-world-demo", region="us-central1")
+    assert delete_res["status"] == "DELETED"
 
 
 @pytest.mark.asyncio

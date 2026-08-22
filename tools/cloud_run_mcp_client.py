@@ -71,7 +71,8 @@ class CloudRunMCPClient:
     def _resolve_token(self, explicit_token: str | None = None) -> str | None:
         """Resolve short-lived OAuth token injected from the Gateway boundary."""
         token = explicit_token or self.auth_token
-        if not token and not self.use_mock:
+        is_empty = token is None or (isinstance(token, str) and not token.strip())
+        if is_empty and not self.use_mock:
             raise PermissionError(
                 "Zero credentials in sandbox violation: CloudRunMCPClient requires a gateway-injected OAuth bearer token in live mode."
             )
@@ -88,6 +89,9 @@ class CloudRunMCPClient:
         region: str,
         allowed_prefixes: list[str] | None = None,
         allowed_regions: list[str] | None = None,
+        max_instances: int | None = None,
+        allowed_max_instances: int = 3,
+        min_instances: int | None = None,
     ) -> bool:
         """Validate service deployment parameters against domain RBAC policies."""
         prefixes = allowed_prefixes or ALLOWED_SERVICE_PREFIXES
@@ -103,12 +107,32 @@ class CloudRunMCPClient:
                 f"Policy violation: region '{region}' is not in allowed regions {regions}"
             )
 
+        if max_instances is not None:
+            if max_instances > allowed_max_instances:
+                raise ValueError(
+                    f"Policy violation: requested max_instances ({max_instances}) exceeds allowed limit ({allowed_max_instances})"
+                )
+            if max_instances < 1:
+                raise ValueError(
+                    f"Policy violation: max_instances must be at least 1, got {max_instances}"
+                )
+
+        if min_instances is not None:
+            if min_instances < 0:
+                raise ValueError(
+                    f"Policy violation: min_instances cannot be negative, got {min_instances}"
+                )
+            if max_instances is not None and min_instances > max_instances:
+                raise ValueError(
+                    f"Policy violation: min_instances ({min_instances}) cannot exceed max_instances ({max_instances})"
+                )
+
         return True
 
     async def deploy_service(
         self,
         service_name: str,
-        image_uri: str = f"gcr.io/{DEFAULT_PROJECT_ID}/sdo-hello-world-demo:latest",
+        image_uri: str | None = None,
         env_vars: dict[str, str] | None = None,
         region: str | None = None,
         min_instances: int = 0,
@@ -119,8 +143,14 @@ class CloudRunMCPClient:
         """Provision or update a Google Cloud Run service with OAuth credential injection."""
         target_region = region or self.region
         token = self._resolve_token(auth_token)
+        target_image = image_uri or f"gcr.io/{self.project_id}/{service_name}:latest"
 
-        self.validate_service_policy(service_name, target_region)
+        self.validate_service_policy(
+            service_name=service_name,
+            region=target_region,
+            max_instances=max_instances,
+            min_instances=min_instances,
+        )
 
         service_url = self.build_service_url(service_name, target_region)
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -150,7 +180,7 @@ class CloudRunMCPClient:
             min_instances=min_instances,
             max_instances=max_instances,
             allow_unauthenticated=allow_unauthenticated,
-            image_uri=image_uri,
+            image_uri=target_image,
             deployed_at=now_iso,
         )
 
@@ -174,6 +204,7 @@ class CloudRunMCPClient:
         """Retrieve deployment status and URL of a Cloud Run service."""
         target_region = region or self.region
         self._resolve_token(auth_token)
+        self.validate_service_policy(service_name, target_region)
 
         key = f"{target_region}/{service_name}"
         if key in self._deployed_services:
@@ -200,6 +231,7 @@ class CloudRunMCPClient:
         """Delete an ephemeral Cloud Run service."""
         target_region = region or self.region
         self._resolve_token(auth_token)
+        self.validate_service_policy(service_name, target_region)
 
         key = f"{target_region}/{service_name}"
         if key in self._deployed_services:
@@ -221,6 +253,10 @@ class CloudRunMCPClient:
         """List all active Cloud Run services."""
         target_region = region or self.region
         self._resolve_token(auth_token)
+        if target_region not in ALLOWED_REGIONS:
+            raise ValueError(
+                f"Policy violation: region '{target_region}' is not in allowed regions {ALLOWED_REGIONS}"
+            )
         return [
             s for key, s in self._deployed_services.items()
             if key.startswith(f"{target_region}/")

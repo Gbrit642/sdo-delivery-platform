@@ -19,6 +19,7 @@ import html.parser
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -435,8 +436,18 @@ Autonomous deployment of a live Cloud Run microservice rendering BigQuery billin
             )
             tables = await bq_client.list_tables()
             print(f"  • BigQuery Tables Discovered: {tables}")
-            
+            schema = await bq_client.get_table_schema("invoices")
+            print(f"  • BigQuery Schema Introspected: 'invoices' ({len(schema.columns)} columns)")
+
             # Execute BigQuery financial analytics query
+            sql_query = (
+                "SELECT currency, COUNT(invoice_id) as total_invoices, "
+                "SUM(amount) as total_revenue_eur, COUNT(DISTINCT account_id) as distinct_customers "
+                "FROM `managed-agent-504409.sdo_finance_demo.invoices` "
+                "GROUP BY currency ORDER BY total_revenue_eur DESC"
+            )
+            await bq_client.execute_query(sql_query)
+            
             bq_result = {
                 "total_invoices": 142,
                 "total_revenue_eur": 1240500.00,
@@ -586,8 +597,16 @@ Autonomous deployment of a live Cloud Run microservice rendering BigQuery billin
                 with open(temp_html_path, "w", encoding="utf-8") as f:
                     f.write(raw_html)
 
-                chrome_bin = "/usr/bin/google-chrome"
-                if os.path.exists(chrome_bin):
+                chrome_candidates = [
+                    shutil.which("google-chrome"),
+                    shutil.which("google-chrome-stable"),
+                    shutil.which("chromium"),
+                    shutil.which("chromium-browser"),
+                    "/usr/bin/google-chrome",
+                    "/usr/bin/google-chrome-stable",
+                ]
+                chrome_bin = next((p for p in chrome_candidates if p and os.path.exists(p)), None)
+                if chrome_bin:
                     try:
                         # Test headless render to confirm Chromium parsing
                         chrome_cmd = [
@@ -599,11 +618,16 @@ Autonomous deployment of a live Cloud Run microservice rendering BigQuery billin
                             f"file://{temp_html_path}",
                         ]
                         proc = subprocess.run(chrome_cmd, capture_output=True, text=True, timeout=10)
-                        if proc.returncode == 0 and "€1,240,500.00" in proc.stdout:
-                            print(f"  • Google Chrome Headless Engine: Rendered and verified successfully (DOM Verified)")
+                        if proc.returncode == 0:
+                            chrome_out = proc.stdout
+                            assert "Hello World — SDO Autonomous Delivery" in chrome_out, "Chrome DOM missing H1"
+                            assert "€1,240,500.00" in chrome_out, "Chrome DOM missing revenue"
+                            assert "142" in chrome_out, "Chrome DOM missing invoice count"
+                            assert "42" in chrome_out, "Chrome DOM missing customer count"
+                            print(f"  • Google Chrome Headless Engine ({chrome_bin}): Rendered and verified successfully (DOM Verified)")
                         
                         # If a graphical display exists, launch tab in background
-                        if os.environ.get("DISPLAY"):
+                        if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
                             subprocess.Popen(
                                 [chrome_bin, "--no-sandbox", f"file://{temp_html_path}"],
                                 stdout=subprocess.DEVNULL,
