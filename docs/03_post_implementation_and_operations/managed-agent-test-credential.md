@@ -198,3 +198,95 @@ Upon executing this simulation, the following assets will be confirmed operation
 5. **OpenTelemetry Cloud Trace:** Distributed trace capturing both BigQuery MCP and Cloud Run MCP spans.
 6. **Quality Flywheel Score:** 1.00 / 1.00 score across all multi-turn evaluation metrics.
 
+---
+
+## 6. Implementation Plan & Replication Blueprint for Future Coding Agents
+
+This section provides an actionable, step-by-step implementation blueprint to enable future software engineers and AI coding agents to replicate and extend this architecture seamlessly.
+
+```
++---------------------------------------------------------------------------------------------------+
+| IMPLEMENTATION ROADMAP & REPLICATION PHASES                                                       |
++---------------------------------------------------------------------------------------------------+
+| Phase 1: Tool Connector Layer       --> tools/cloud_run_mcp_client.py                            |
+| Phase 2: Domain RBAC Manifest       --> registry/skills/finance.yaml                              |
+| Phase 3: Executable Simulation      --> scripts/simulate_managed_agent_oauth_mcp_journey.py       |
+| Phase 4: Automated Pytest Suite     --> tests/integration/test_managed_agent_oauth_mcp_journey.py  |
+| Phase 5: Live Cloud Run Deploy & Chrome Verification                                              |
++---------------------------------------------------------------------------------------------------+
+```
+
+---
+
+### Phase 1: Build the Cloud Run MCP Client (`tools/cloud_run_mcp_client.py`)
+- **Objective:** Create the Cloud Run Admin MCP tool connector that accepts service deployment specifications and interacts with Google Cloud Run APIs via OAuth token injection.
+- **Key Methods:**
+  - `deploy_service(service_name, image_uri, env_vars, region)`: Spins up or updates a serverless Cloud Run container.
+  - `get_service_status(service_name, region)`: Retrieves service URL, conditions, and traffic routing.
+  - `delete_service(service_name, region)`: Cleans up ephemeral test services.
+- **Credential Handling:** Intercepts short-lived OAuth 2.0 bearer access tokens supplied by `AgentGatewayAuth` at the Gateway mediation boundary.
+
+---
+
+### Phase 2: Update Domain RBAC Manifest (`registry/skills/finance.yaml`)
+- **Objective:** Grant explicit permissions for the `finance` domain to invoke the `cloud_run_mcp` connector for deploying customer reporting web apps.
+- **Configuration Added:**
+  ```yaml
+  allowed_connectors:
+    bigquery:
+      datasets: ["sdo_finance_demo"]
+      tables: ["invoices", "receipts", "exchange_rates"]
+    cloud_run_mcp:
+      allowed_regions: ["us-central1", "europe-west1"]
+      allowed_service_prefixes: ["sdo-hello-world-", "sdo-report-"]
+      max_instances: 3
+  ```
+
+---
+
+### Phase 3: Implement Executable Simulation Runner (`scripts/simulate_managed_agent_oauth_mcp_journey.py`)
+- **Objective:** Provide a standalone CLI script that executes the complete 10-step lifecycle for both Option A (Cloud Run A2A) and Option B (Vertex AI Agent Runtime).
+- **Execution Steps:**
+  1. Initialize `AgentGatewayAuth` with user `sarah.controller@wallbox.com`.
+  2. Query `sdo_finance_demo.invoices` via `BigQueryMCPClient`.
+  3. Synthesize the FastAPI web application (`main.py` + `index.html`).
+  4. Run `ManagedAgentSandbox.execute_code_tests()` (100% pytest pass).
+  5. Deploy `sdo-hello-world-demo` via `CloudRunMCPClient` using injected OAuth credentials.
+  6. Execute automated DOM content extraction verifying `<h1>Hello World — SDO Autonomous Delivery</h1>` and exact BigQuery revenue `€1,240,500.00`.
+  7. Open the live URL in **Google Chrome**.
+  8. Seal SHA-256 state into GCS WORM storage and export Cloud Trace spans.
+
+---
+
+### Phase 4: Build Automated Pytest Suite (`tests/integration/test_managed_agent_oauth_mcp_journey.py`)
+- **Objective:** Ensure automated regression test coverage across all components.
+- **Tests Implemented:**
+  - `test_gateway_credential_injection_to_mcp()`: Asserts that OAuth tokens are injected per-request without storing secrets on disk.
+  - `test_managed_sandbox_isolation()`: Verifies that `/workspace` has zero ambient ADC or metadata resolution.
+  - `test_bigquery_and_cloud_run_dual_mcp_execution()`: Verifies simultaneous tool calls to BigQuery and Cloud Run.
+  - `test_rendered_webpage_dom_content_ground_truth()`: Validates exact BigQuery data strings in the rendered HTML body.
+
+---
+
+### Phase 5: Step-by-Step Replication Runbook for Future Agents
+
+Any future coding agent can replicate this simulation by running:
+
+```bash
+# 1. Ensure working on the feature branch
+git checkout feat/enterprise-feature-dev
+
+# 2. Run the complete automated test suite (50+ tests including MCP journey)
+pytest tests/ -v
+
+# 3. Run the standalone dual-agent simulation runner
+python3 scripts/simulate_managed_agent_oauth_mcp_journey.py
+
+# 4. Verify live Cloud Run deployment in Google Chrome
+google-chrome "https://sdo-hello-world-demo-316329647160.us-central1.run.app" &
+
+# 5. Check Cloud Trace telemetry for BigQuery and Cloud Run MCP spans
+gcloud logging read 'logName:"projects/managed-agent-504409/logs/sdo_analytics"' --limit=5
+```
+
+
