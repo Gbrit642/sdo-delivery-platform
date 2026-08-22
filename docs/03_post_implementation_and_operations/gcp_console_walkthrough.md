@@ -74,8 +74,8 @@ Gemini Enterprise manages the corporate catalog where business users discover an
 
 #### What to Inspect in the Console:
 1. **Agents / Assistants List:** Confirm both registered agents show status `ENABLED`:
-   - **Option A:** `Wallbox SDO - Option A (Vertex AI Agent Runtime Engine)` (Agent ID: `7628637833600983461`)
-   - **Option B:** `Wallbox SDO - Option B (Cloud Run A2A with Web Dashboard & Gates)` (Agent ID: `11327987463052893149`)
+   - **Option A:** `Wallbox SDO - Option A (Vertex AI Agent Runtime Engine)` (Agent ID: `4439114975457332401`)
+   - **Option B:** `Wallbox SDO - Option B (Cloud Run A2A with Web Dashboard & Gates)` (Agent ID: `2480784782936961193`)
 2. **Agent Details & Tools:** Click on Option B to view the configured A2A Discovery endpoint pointing to Cloud Run.
 
 ---
