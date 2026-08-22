@@ -17,6 +17,7 @@ class DomainSkill(BaseModel):
     description: str
     authorized_roles: list[str] = Field(default_factory=list)
     authorized_tables: list[str] = Field(default_factory=list)
+    allowed_connectors: dict[str, Any] = Field(default_factory=dict)
     intake_guidelines: dict[str, Any] = Field(default_factory=dict)
     spec_validation_rules: dict[str, Any] = Field(default_factory=dict)
     acceptance_criteria: dict[str, Any] = Field(default_factory=dict)

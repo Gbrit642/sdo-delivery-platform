@@ -12,6 +12,15 @@ authorized_tables:
   - "sdo_finance_demo.exchange_rates"
   - "sdo_finance_demo.revenue_summary"
 
+allowed_connectors:
+  bigquery:
+    datasets: ["sdo_finance_demo"]
+    tables: ["invoices", "receipts", "exchange_rates"]
+  cloud_run_mcp:
+    allowed_regions: ["us-central1", "europe-west1"]
+    allowed_service_prefixes: ["sdo-hello-world-", "sdo-report-"]
+    max_instances: 3
+
 intake_guidelines:
   prompt_guidance: |
     You are assisting a Finance domain owner. Ensure the brief clearly specifies the reporting period,
