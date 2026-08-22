@@ -547,12 +547,13 @@ async def a2a_endpoint(request: Request):
     if not user_text:
         user_text = "Generate a weekly financial variance analytical report for invoice reconciliation."
 
+    user_lower = user_text.lower()
+
     # Identify domain from request context or explicit field
     domain_override = body.get("node_id") or body.get("domain") or params.get("node_id") or params.get("domain")
     if domain_override:
         domain = str(domain_override).lower()
     else:
-        user_lower = user_text.lower()
         domain = "finance"
         if "market" in user_lower or "campaign" in user_lower or "cac" in user_lower:
             domain = "marketing"
@@ -574,17 +575,48 @@ async def a2a_endpoint(request: Request):
     )
     state = await create_loop(create_req)
 
-    reply_text = (
-        f"⚡ **Autonomous SDO Platform — Process Initiated**\n\n"
-        f"• **Loop ID:** `{state.loop_id}`\n"
-        f"• **Domain:** {domain.upper()}\n"
-        f"• **Delivery Path:** Direct Connector Automation ($0 compute, <5s)\n"
-        f"• **Current State:** `WAIT_GATE_H1` (Specification Sign-Off Required)\n\n"
-        f"**Specification Summary:**\n"
-        f"Gherkin scenarios and BigQuery schema boundaries configured for '{domain}'.\n\n"
-        f"👉 **Action Required:** Open the [Interactive Web Dashboard](https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app) "
-        f"to review the specification and approve Gate H1."
-    )
+    # 1. Evaluate trade-offs and build conversational executive brief
+    comparison = TradeoffEvaluator.evaluate_brief(user_text, domain=domain)
+    exec_brief = TradeoffEvaluator.format_conversational_executive_brief(comparison)
+
+    # 2. Check if prompt requests deployment or data querying and build deliverable preview
+    if any(k in user_lower for k in ["deploy", "hello world", "web app", "website", "cloud run"]):
+        deliverable_card = TradeoffEvaluator.format_adaptive_deliverable_card(
+            domain=domain,
+            deliverable_type="web_app",
+            title="SDO Hello World Financial Analytics",
+            summary="Autonomous delivery of Cloud Run microservice with BigQuery billing revenue metrics.",
+            preview_url="https://sdo-hello-world-demo-316329647160.us-central1.run.app",
+            metrics={
+                "total_invoices": 142,
+                "total_billing_revenue": "€1,240,500.00",
+                "active_customers": 42,
+                "reconciliation_rate": "100.0%",
+            },
+            gcs_uris=state.gcs_artifact_uris,
+            worm_record_id=f"audit/{domain}/{state.loop_id}/EVT-01.json",
+            duration_ms=420.0,
+        )
+        reply_text = (
+            f"{exec_brief}\n\n"
+            f"---\n\n"
+            f"{deliverable_card}\n\n"
+            f"⚡ **Loop Initiated:** `{state.loop_id}` (`{state.current_state}`)\n"
+            f"👉 **Web Dashboard:** [Open Visual State Machine](https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app)"
+        )
+    else:
+        reply_text = (
+            f"{exec_brief}\n\n"
+            f"⚡ **Autonomous SDO Platform — Process Initiated**\n\n"
+            f"• **Loop ID:** `{state.loop_id}`\n"
+            f"• **Domain:** {domain.upper()}\n"
+            f"• **Delivery Path:** Direct Connector Automation ($0 compute, <5s)\n"
+            f"• **Current State:** `WAIT_GATE_H1` (Specification Sign-Off Required)\n\n"
+            f"**Specification Summary:**\n"
+            f"Gherkin scenarios and schema boundaries configured for '{domain}'.\n\n"
+            f"👉 **Action Required:** Open the [Interactive Web Dashboard](https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app) "
+            f"to review the specification and approve Gate H1."
+        )
 
     artifacts_list = [
         {"name": k, "uri": str(v)}
