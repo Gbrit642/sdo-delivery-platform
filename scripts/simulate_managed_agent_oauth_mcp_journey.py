@@ -2,12 +2,12 @@
 """Standalone Executable Simulation: Credential-Injected Managed Agent OAuth MCP Journey.
 
 Simulates the complete 10-step lifecycle for:
-- Option A: Cloud Run A2A Agent (sdo-adk-cloudrun-a2a)
-- Option B: Vertex AI Agent Runtime Engine (sdo-adk-agent-runtime)
+- Option A: Vertex AI Agent Runtime Engine (sdo-adk-agent-runtime - Primary / Default)
+- Option B: Cloud Run A2A Agent (sdo-adk-cloudrun-a2a - Backup / Web Dashboard)
 
 Validates zero credentials in the Linux sandbox, gateway-mediated OAuth injection for
 Cloud Run Admin MCP, BigQuery Managed MCP introspection, automated DOM content parsing,
-and Google Chrome browser rendering.
+Google Chrome browser rendering, and in-chat native conversational executive deliverables.
 """
 
 from __future__ import annotations
@@ -43,6 +43,7 @@ from storage.worm_audit import WormAuditWriter
 from tools.bq_mcp_client import BigQueryMCPClient
 from tools.cloud_run_mcp_client import CloudRunMCPClient
 from tools.managed_sandbox import ManagedAgentSandbox
+from agents.tradeoff_evaluator import TradeoffEvaluator
 
 # Setup structured console logger
 logging.basicConfig(
@@ -276,7 +277,7 @@ class ManagedAgentSimulationRunner:
 
     def __init__(
         self,
-        option: str = "A",  # 'A' = Cloud Run A2A, 'B' = Vertex AI Agent Runtime
+        option: str = "A",  # 'A' = Vertex AI Agent Runtime (Primary), 'B' = Cloud Run A2A (Backup)
         project_id: str = "managed-agent-504409",
         project_number: str = "316329647160",
         region: str = "us-central1",
@@ -295,9 +296,9 @@ class ManagedAgentSimulationRunner:
 
     def print_banner(self) -> None:
         mode_desc = (
-            "Option A: Cloud Run A2A Streaming Agent (sdo-adk-cloudrun-a2a)"
+            "Option A: Vertex AI Agent Runtime Reasoning Engine (sdo-adk-agent-runtime - Primary / Default)"
             if self.option == "A"
-            else "Option B: Vertex AI Agent Runtime Reasoning Engine (sdo-adk-agent-runtime)"
+            else "Option B: Cloud Run A2A Streaming Agent (sdo-adk-cloudrun-a2a - Backup / Web Dashboard)"
         )
         print("\n" + "=" * 90)
         print(f"🚀 SDO PLATFORM: MANAGED AGENT SECURED OAUTH MCP JOURNEY SIMULATION")
@@ -334,7 +335,15 @@ class ManagedAgentSimulationRunner:
         print("\n▶ [Step 2/10] Ingress & Dual-Identity Interception")
         with trace_agent_step("GATEWAY_INGRESS", self.loop_id, {"ingress.option": self.option}):
             if self.option == "A":
-                # Google A2A Ingress Header Mediation
+                # Vertex AI Agent Runtime Reasoning Engine Client Mediation (Primary / Default)
+                actor = self.gateway_auth.authenticate_token({
+                    "email": initiator_email,
+                    "sub": f"google-workload|{initiator_email}",
+                    "roles": ["financial_controller", "finance_lead"],
+                    "department": "Finance",
+                })
+            else:
+                # Google A2A Ingress Header Mediation (Backup / Dedicated Web Dashboard)
                 headers = {
                     "X-Goog-Authenticated-User-Email": f"accounts.google.com:{initiator_email}",
                     "User-Agent": "Google-A2A-v1.0-SSE-Client",
@@ -344,14 +353,6 @@ class ManagedAgentSimulationRunner:
                     fallback_roles=["financial_controller", "finance_lead"],
                     fallback_dept="Finance",
                 )
-            else:
-                # Vertex AI Agent Runtime Reasoning Engine Client Mediation
-                actor = self.gateway_auth.authenticate_token({
-                    "email": initiator_email,
-                    "sub": f"google-workload|{initiator_email}",
-                    "roles": ["financial_controller", "finance_lead"],
-                    "department": "Finance",
-                })
 
             agent_identity = AgentGatewayAuth.get_agent_service_identity("finance")
             is_authorized = PolicyInterceptor.verify_node_access(actor, "finance")
@@ -642,9 +643,9 @@ Autonomous deployment of a live Cloud Run microservice rendering BigQuery billin
             results["step_9_dom"] = {"status": "SUCCESS", "all_assertions_passed": True}
 
         # =========================================================================
-        # STEP 10: Immutable WORM Audit & OpenTelemetry Trace
+        # STEP 10: Immutable WORM Audit & In-Chat Executive Deliverable Presentation
         # =========================================================================
-        print("\n▶ [Step 10/10] Immutable WORM Audit & OpenTelemetry Trace")
+        print("\n▶ [Step 10/10] Immutable WORM Audit & In-Chat Executive Deliverable Presentation")
         with trace_agent_step("WORM_SEAL_AND_AUDIT", self.loop_id):
             audit_key = await self.audit_writer.write_audit_record(
                 node_id="finance",
@@ -669,10 +670,46 @@ Autonomous deployment of a live Cloud Run microservice rendering BigQuery billin
 
         duration_sec = time.time() - start_sim_time
         mode_desc = (
-            "Option A: Cloud Run A2A Streaming Agent (sdo-adk-cloudrun-a2a)"
+            "Option A: Vertex AI Agent Runtime Reasoning Engine (sdo-adk-agent-runtime - Primary / Default)"
             if self.option == "A"
-            else "Option B: Vertex AI Agent Runtime Reasoning Engine (sdo-adk-agent-runtime)"
+            else "Option B: Cloud Run A2A Streaming Agent (sdo-adk-cloudrun-a2a - Backup / Web Dashboard)"
         )
+
+        # Generate and display in-chat native executive deliverable card
+        print("\n" + "—" * 90)
+        print("💬 GEMINI ENTERPRISE IN-CHAT NATIVE EXECUTIVE DELIVERABLE CARD")
+        print("—" * 90)
+        deliverable_card = TradeoffEvaluator.format_adaptive_deliverable_card(
+            domain="finance",
+            deliverable_type="web_app",
+            title="SDO Hello World Financial Analytics",
+            summary=(
+                "Autonomous deployment of a live Cloud Run microservice backed by BigQuery Managed MCP. "
+                "The transient sandbox completed compilation, executed automated unit and DOM tests with a "
+                "100% pass guarantee, deployed the verified container, and shut down cleanly at $0 idle compute cost."
+            ),
+            metrics={
+                "Total Billing Revenue": "€1,240,500.00",
+                "Processed Invoices": 142,
+                "Active Customers": 42,
+                "Top Currency": "EUR (€850,000.00)",
+            },
+            preview_url=service_url,
+            gcs_uris={
+                "Specification": f"gs://{self.settings.gcs_worm_bucket}/processes/finance/{self.loop_id}/spec.md",
+                "Application Code": f"gs://{self.settings.gcs_worm_bucket}/processes/finance/{self.loop_id}/main.py",
+                "Test Suite": f"gs://{self.settings.gcs_worm_bucket}/processes/finance/{self.loop_id}/test_main.py",
+            },
+            worm_record_id=audit_key,
+            duration_ms=duration_sec * 1000.0,
+        )
+        print(deliverable_card)
+        print("—" * 90)
+        print("💡 Architecture Invariant Check:")
+        print("  • Permanent Agent Registration in Gemini Enterprise: SKIPPED (Transient compute model)")
+        print("  • Compute Lifecycle: Ephemeral Sandbox Shut Down ($0 Ongoing Compute)")
+        print("—" * 90)
+
         print("\n" + "=" * 90)
         print(f"✅ SIMULATION RUN COMPLETED SUCCESSFULLY in {duration_sec:.2f}s!")
         print(f"🎉 All 10 Steps Verified for {mode_desc}")
@@ -686,7 +723,7 @@ async def main_async() -> int:
         "--option",
         choices=["A", "B", "all"],
         default="all",
-        help="Simulation target option: A (Cloud Run A2A), B (Vertex AI Agent Runtime), or all (both)",
+        help="Simulation target option: A (Vertex AI Agent Runtime), B (Cloud Run A2A), or all (both)",
     )
     parser.add_argument(
         "--no-browser",

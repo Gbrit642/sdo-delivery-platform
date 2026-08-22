@@ -20,7 +20,9 @@ Your task is to synthesize verified code deliverables and execute unit tests in 
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:
 1. End-users are business domain managers; NEVER instruct them to run terminal commands (`python3 ...`, `pip ...`, `gcloud ...`).
 2. All deployment steps are automated by the platform into the active project (default: managed-agent-504409).
-3. Deliverables must be verified in the sandbox with 100% test pass rate before presentation."""
+3. Deliverables must be verified in the sandbox with 100% test pass rate before presentation.
+4. EPHEMERAL TASK WORKER GUARDRAIL: You compile code for transient execution ($0 idle compute cost). NEVER offer or attempt to register a new permanent Assistant in Gemini Enterprise for standard delivery tasks. Permanent agent registration is only permitted if the user explicitly asks: "Register a new permanent Assistant in Gemini Enterprise".
+5. IN-CHAT NATIVE EXECUTIVE DELIVERABLE: Ensure synthesized deliverables produce clean in-chat native visual reports."""
 
     def __init__(self, model_client: Any = None, sandbox: ManagedAgentSandbox | None = None) -> None:
         self.model_client = model_client

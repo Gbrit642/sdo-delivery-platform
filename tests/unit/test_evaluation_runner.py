@@ -13,29 +13,29 @@ from eval.custom_metrics import (
 
 @pytest.mark.asyncio
 async def test_evaluation_benchmark_suite():
-    """Run full benchmark suite and assert all benchmarks pass with aggregate_score >= 0.85 for Option B and Option A."""
+    """Run full benchmark suite and assert all benchmarks pass with aggregate_score >= 0.85 for Option A and Option B."""
     benchmarks_path = Path(__file__).resolve().parent.parent.parent / "eval" / "benchmarks" / "finance_benchmarks.json"
     assert benchmarks_path.exists(), f"Benchmark file not found at {benchmarks_path}"
 
-    # 1. Test Option B: ADK StateGraph deep trajectory evaluation
-    score_cards_b = await SDOAgentEvaluator.run_benchmark_suite(benchmarks_path, mode="option_b_stategraph")
-    assert len(score_cards_b) >= 5
-
-    for card in score_cards_b:
-        assert card.passed is True, f"Option B Benchmark {card.loop_id} failed: {card.summary}"
-        assert card.aggregate_score >= 0.85, f"Benchmark {card.loop_id} aggregate score {card.aggregate_score} < 0.85"
-        assert card.gherkin_contract_score >= 0.90
-        assert card.graph_conformance_score >= 0.90
-        assert card.skill_compliance_score >= 0.90
-        assert card.sandbox_reliability_score == 1.0
-
-    # 2. Test Option A: A2A protocol & deliverable evaluation
-    score_cards_a = await SDOAgentEvaluator.run_benchmark_suite(benchmarks_path, mode="option_a_a2a")
+    # 1. Test Option A: Vertex AI Agent Runtime ADK StateGraph deep trajectory evaluation
+    score_cards_a = await SDOAgentEvaluator.run_benchmark_suite(benchmarks_path, mode="option_a_stategraph")
     assert len(score_cards_a) >= 5
 
     for card in score_cards_a:
         assert card.passed is True, f"Option A Benchmark {card.loop_id} failed: {card.summary}"
         assert card.aggregate_score >= 0.85, f"Option A Benchmark {card.loop_id} aggregate score {card.aggregate_score} < 0.85"
+        assert card.gherkin_contract_score >= 0.90
+        assert card.graph_conformance_score >= 0.90
+        assert card.skill_compliance_score >= 0.90
+        assert card.sandbox_reliability_score == 1.0
+
+    # 2. Test Option B: Cloud Run A2A protocol & deliverable evaluation
+    score_cards_b = await SDOAgentEvaluator.run_benchmark_suite(benchmarks_path, mode="option_b_a2a")
+    assert len(score_cards_b) >= 5
+
+    for card in score_cards_b:
+        assert card.passed is True, f"Option B Benchmark {card.loop_id} failed: {card.summary}"
+        assert card.aggregate_score >= 0.85, f"Option B Benchmark {card.loop_id} aggregate score {card.aggregate_score} < 0.85"
 
 
 def test_custom_metrics_edge_cases():

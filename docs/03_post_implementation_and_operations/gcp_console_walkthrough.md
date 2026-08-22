@@ -23,11 +23,10 @@
 ```
 +-------------------------------------------------------------------------------------------------------------------------+
 |                                           GOOGLE CLOUD CONSOLE SERVICE MAP                                              |
-+-------------------------------------------------------------------------------------------------------------------------+
-| [1. Ingress & Compute]           [2. AI Agent Catalog & Runtime]           [3. Data, Storage & Compliance]              |
++---------------------------------------------------------------------------------------------------------------------| [1. Ingress & Compute]           [2. AI Agent Catalog & Runtime]           [3. Data, Storage & Compliance]              |
 | ├── Cloud Run                    ├── Gemini Enterprise Assistant           ├── BigQuery (Datasets & Views)             |
-| │   └── sdo-adk-cloudrun-a2a     │   ├── Option A (Cloud Run A2A)          │   ├── sdo_finance_demo (Operational)      |
-| ├── Cloud Load Balancing         │   └── Option B (Agent Runtime)          │   └── sdo_analytics (Telemetry Index)     |
+| │   └── sdo-adk-cloudrun-a2a     │   ├── Option A (Agent Runtime)          │   ├── sdo_finance_demo (Operational)      |
+| ├── Cloud Load Balancing         │   └── Option B (Cloud Run A2A)          │   └── sdo_analytics (Telemetry Index)     |
 | │   └── Serverless NEG (IAP)     └── Vertex AI Reasoning Engine            ├── Cloud Storage (GCS)                     |
 | └── Identity-Aware Proxy (IAP)       └── ID: 202294196592181248            │   ├── sdo-worm-audit (Bucket Lock WORM)   |
 |                                                                            │   └── sdo-artifacts (Process Hierarchy)   |
@@ -75,9 +74,9 @@ Gemini Enterprise manages the corporate catalog where business users discover an
 
 #### What to Inspect in the Console:
 1. **Agents / Assistants List:** Confirm both registered agents show status `ENABLED`:
-   - **Option A:** `Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)` (Agent ID: `11327987463052893149`)
-   - **Option B:** `Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)` (Agent ID: `7628637833600983461`)
-2. **Agent Details & Tools:** Click on Option A to view the configured A2A Discovery endpoint pointing to Cloud Run.
+   - **Option A:** `Wallbox SDO - Option A (Vertex AI Agent Runtime Engine)` (Agent ID: `7628637833600983461`)
+   - **Option B:** `Wallbox SDO - Option B (Cloud Run A2A with Web Dashboard & Gates)` (Agent ID: `11327987463052893149`)
+2. **Agent Details & Tools:** Click on Option B to view the configured A2A Discovery endpoint pointing to Cloud Run.
 
 ---
 

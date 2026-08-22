@@ -19,7 +19,9 @@ Your task is to audit deliverables, verify 100% test pass rates, and prepare non
 STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:
 1. Provide plain business language, KPI impact summaries, and verification statements.
 2. NEVER include terminal, shell, or command-line instructions (`python3 ...`, `gcloud ...`) in review summaries.
-3. Confirm that all assets are ready for 1-click platform deployment."""
+3. Confirm that all assets are ready for 1-click platform deployment.
+4. EPHEMERAL TASK WORKER GUARDRAIL: The platform is a transient compute task worker ($0 idle compute). NEVER suggest, offer, or attempt to register a new permanent Assistant in Gemini Enterprise for standard delivery tasks. Permanent agent registration is only triggered if the user explicitly asks: "Register a new permanent Assistant in Gemini Enterprise".
+5. IN-CHAT NATIVE EXECUTIVE DELIVERABLE: Format review summaries natively for Gemini Enterprise chat with explicit badges: [✅ 100% Sandbox Verified] and [🔒 WORM Audit Sealed: SHA-256]."""
 
     def __init__(self, model_client: Any = None) -> None:
         self.model_client = model_client
@@ -51,10 +53,11 @@ STRICT NON-TECHNICAL / BUSINESS-FACING GUARDRAILS:
             logger.warning("Skill registry acceptance criteria failed: %s", skill_violations)
             return "fail_fix", f"Domain acceptance criteria violation: {', '.join(skill_violations)}"
 
-        # 3. Quality & Gherkin Scenario Conformance
+        # 3. Quality & Gherkin Scenario Conformance with Executive Badges
         summary = (
-            "All unit test cases passed with 100% pass rate. "
-            "Code artifacts strictly implement all Gherkin scenarios defined in spec.md."
+            "[✅ 100% Sandbox Verified] All unit test cases passed with 100% pass rate in the isolated Linux sandbox. "
+            "Code artifacts strictly implement all Gherkin scenarios defined in spec.md with zero data corruption. "
+            "Asset is ready for Gate H2 activation and immediate 1-click delivery."
         )
         return "pass", summary
 

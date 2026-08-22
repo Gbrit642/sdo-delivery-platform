@@ -152,8 +152,8 @@ Explore how the Agent Gateway securely delegates credentials across Google Cloud
 ## 🏛 Agent Registry in Gemini Enterprise
 
 Both agent deployment variants are registered in the **Google Discovery Engine / Gemini Enterprise Agent Catalog**:
-- **Option A (`11327987463052893149`):** `Autonomous SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)` exposing the A2A Agent Card.
-- **Option B (`7628637833600983461`):** `Autonomous SDO - Option B (Vertex AI Agent Runtime Engine)` executing ADK State Graphs directly on Vertex AI.
+- **Option A (`7628637833600983461`):** `Wallbox SDO - Option A (Vertex AI Agent Runtime Engine)` executing ADK State Graphs directly on Vertex AI (Primary / Default).
+- **Option B (`11327987463052893149`):** `Wallbox SDO - Option B (Cloud Run A2A with Web Dashboard & Gates)` exposing the A2A Agent Card (Backup / Dedicated Web Dashboard).
 - **Extensible MCP Catalog:** Ready to register upcoming managed GCP MCPs and third-party enterprise tools (Salesforce, NetSuite, Notion).
 
 ---

@@ -23,10 +23,44 @@ headers = {
 base_url = f"https://discoveryengine.googleapis.com/v1alpha/projects/{PROJECT_NUMBER}/locations/{LOCATION}/collections/{COLLECTION}/engines/{ENGINE_ID}/assistants/default_assistant/agents"
 
 # ------------------------------------------------------------------------------
-# 1. OPTION A: Register Cloud Run A2A Agent
+# 1. OPTION A: Register Vertex AI Agent Runtime Engine (Primary / Default)
 # ------------------------------------------------------------------------------
 print("\n==============================================================================")
-print("📦 Registering OPTION A: Cloud Run A2A Agent with Gemini Enterprise")
+print("🧠 Registering OPTION A: Vertex AI Agent Runtime Engine with Gemini Enterprise")
+print("==============================================================================")
+
+# Use active Reasoning Engine in us-central1
+agent_runtime_id = f"projects/{PROJECT_NUMBER}/locations/us-central1/reasoningEngines/202294196592181248"
+payload_a = {
+    "displayName": "Wallbox SDO - Option A (Vertex AI Agent Runtime Engine)",
+    "description": "Serverless Vertex AI Reasoning Engine executing ADK State Graphs directly with Gemini 3.7 Flash.",
+    "icon": {
+        "uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/psychology/default/24px.svg"
+    },
+    "adkAgentDefinition": {
+        "toolSettings": {
+            "toolDescription": "Native Vertex AI Reasoning Engine executing multi-agent workflows with gemini-3.7-flash."
+        },
+        "provisionedReasoningEngine": {
+            "reasoningEngine": agent_runtime_id
+        },
+    },
+}
+
+resp_a = requests.post(base_url, headers=headers, json=payload_a)
+print(f"Option A Registration HTTP Status: {resp_a.status_code}")
+if resp_a.status_code in [200, 201]:
+    res_data_a = resp_a.json()
+    print("✅ Option A Successfully Registered in Gemini Enterprise!")
+    print(f"   Resource Name: {res_data_a.get('name')}")
+else:
+    print(resp_a.text)
+
+# ------------------------------------------------------------------------------
+# 2. OPTION B: Register Cloud Run A2A Agent (Backup / Dedicated Web Dashboard)
+# ------------------------------------------------------------------------------
+print("\n==============================================================================")
+print("📦 Registering OPTION B: Cloud Run A2A Agent with Gemini Enterprise")
 print("==============================================================================")
 
 agent_card_url = "https://sdo-adk-cloudrun-a2a-316329647160.us-central1.run.app/a2a/app/.well-known/agent-card.json"
@@ -75,48 +109,14 @@ agent_card = {
     ],
 }
 
-payload_a = {
-    "displayName": "Wallbox SDO - Option A (Cloud Run A2A with Web Dashboard & Gates)",
+payload_b = {
+    "displayName": "Wallbox SDO - Option B (Cloud Run A2A with Web Dashboard & Gates)",
     "description": "Autonomous delivery platform hosted on Cloud Run with full Chrome Web Dashboard and Gate H1/H2 sign-offs.",
     "icon": {
         "uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/smart_toy/default/24px.svg"
     },
     "a2aAgentDefinition": {
         "jsonAgentCard": json.dumps(agent_card)
-    },
-}
-
-resp_a = requests.post(base_url, headers=headers, json=payload_a)
-print(f"Option A Registration HTTP Status: {resp_a.status_code}")
-if resp_a.status_code in [200, 201]:
-    res_data_a = resp_a.json()
-    print("✅ Option A Successfully Registered in Gemini Enterprise!")
-    print(f"   Resource Name: {res_data_a.get('name')}")
-else:
-    print(resp_a.text)
-
-# ------------------------------------------------------------------------------
-# 2. OPTION B: Register Vertex AI Agent Runtime Engine
-# ------------------------------------------------------------------------------
-print("\n==============================================================================")
-print("🧠 Registering OPTION B: Vertex AI Agent Runtime Engine with Gemini Enterprise")
-print("==============================================================================")
-
-# Use active Reasoning Engine in us-central1
-agent_runtime_id = f"projects/{PROJECT_NUMBER}/locations/us-central1/reasoningEngines/202294196592181248"
-payload_b = {
-    "displayName": "Wallbox SDO - Option B (Vertex AI Agent Runtime Engine)",
-    "description": "Serverless Vertex AI Reasoning Engine executing ADK State Graphs directly with Gemini 3.7 Flash.",
-    "icon": {
-        "uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/psychology/default/24px.svg"
-    },
-    "adkAgentDefinition": {
-        "toolSettings": {
-            "toolDescription": "Native Vertex AI Reasoning Engine executing multi-agent workflows with gemini-3.7-flash."
-        },
-        "provisionedReasoningEngine": {
-            "reasoningEngine": agent_runtime_id
-        },
     },
 }
 

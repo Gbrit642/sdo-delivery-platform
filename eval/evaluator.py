@@ -162,7 +162,7 @@ class SDOAgentEvaluator:
 
     @classmethod
     async def evaluate_a2a_benchmark(cls, benchmark_item: dict[str, Any], client: Any = None) -> EvaluationScoreCard:
-        """Evaluate an A2A message exchange against benchmark standards for Option A."""
+        """Evaluate an A2A message exchange against benchmark standards for Option B (Cloud Run A2A)."""
         from fastapi.testclient import TestClient
         from web.app import app
 
@@ -221,7 +221,7 @@ class SDOAgentEvaluator:
         )
         passed = aggregate >= 0.85
         summary = (
-            f"Option A (A2A) Quality Index: {aggregate * 100:.1f}% (SSE Protocol: {protocol_score:.2f}, "
+            f"Option B (A2A) Quality Index: {aggregate * 100:.1f}% (SSE Protocol: {protocol_score:.2f}, "
             f"Domain Routing: {routing_score:.2f}, Artifacts: {artifact_score:.2f}, Lifecycle: {lifecycle_score:.2f})"
         )
 
@@ -241,7 +241,7 @@ class SDOAgentEvaluator:
     async def run_benchmark_suite(
         cls,
         benchmarks_path: Path | str | None = None,
-        mode: str = "option_b_stategraph",
+        mode: str = "option_a_stategraph",
     ) -> list[EvaluationScoreCard]:
         """Load benchmark JSON definitions and run evaluation scoring across all items."""
         if benchmarks_path is None:
@@ -253,7 +253,7 @@ class SDOAgentEvaluator:
 
         score_cards: list[EvaluationScoreCard] = []
         for b in benchmarks:
-            if mode == "option_a_a2a":
+            if mode in ("option_b_a2a", "option_a_a2a", "a2a", "cloudrun_a2a"):
                 card = await cls.evaluate_a2a_benchmark(b)
             else:
                 card = await cls.evaluate_benchmark(b)
@@ -267,48 +267,48 @@ if __name__ == "__main__":
 
     async def _main():
         print("Running Gemini Enterprise SDO Agent Offline Evaluation Suite...")
-        print("\n--- Option B: Deep ADK StateGraph Trajectory Evaluation ---")
-        cards_b = await SDOAgentEvaluator.run_benchmark_suite(mode="option_b_stategraph")
-        all_passed_b = True
-        print("\n" + "=" * 80)
-        print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'Gherkin':<8} | {'Graph':<8} | {'Skill':<8} | {'Sandbox':<8} | {'Score':<8} | Status")
-        print("-" * 80)
-        for c in cards_b:
-            status = "PASS" if c.passed else "FAIL"
-            if not c.passed:
-                all_passed_b = False
-            print(
-                f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<8.2f} | "
-                f"{c.graph_conformance_score:<8.2f} | {c.skill_compliance_score:<8.2f} | "
-                f"{c.sandbox_reliability_score:<8.2f} | {c.aggregate_score:<8.2f} | {status}"
-            )
-        print("=" * 80)
-        avg_score_b = sum(c.aggregate_score for c in cards_b) / len(cards_b)
-        print(f"Option B Aggregate Score: {avg_score_b:.2f} (Threshold: 0.85)")
-        print(f"Option B Result: {'PASSED' if all_passed_b else 'FAILED'}\n")
-
-        print("\n--- Option A: A2A Protocol & Deliverable Evaluation ---")
-        cards_a = await SDOAgentEvaluator.run_benchmark_suite(mode="option_a_a2a")
+        print("\n--- Option A: Deep ADK StateGraph Trajectory Evaluation (Vertex AI Agent Runtime) ---")
+        cards_a = await SDOAgentEvaluator.run_benchmark_suite(mode="option_a_stategraph")
         all_passed_a = True
         print("\n" + "=" * 80)
-        print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'SSE Proto':<10} | {'Lifecycle':<10} | {'Routing':<8} | {'Artifacts':<10} | {'Score':<8} | Status")
+        print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'Gherkin':<8} | {'Graph':<8} | {'Skill':<8} | {'Sandbox':<8} | {'Score':<8} | Status")
         print("-" * 80)
         for c in cards_a:
             status = "PASS" if c.passed else "FAIL"
             if not c.passed:
                 all_passed_a = False
             print(
-                f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<10.2f} | "
-                f"{c.graph_conformance_score:<10.2f} | {c.skill_compliance_score:<8.2f} | "
-                f"{c.sandbox_reliability_score:<10.2f} | {c.aggregate_score:<8.2f} | {status}"
+                f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<8.2f} | "
+                f"{c.graph_conformance_score:<8.2f} | {c.skill_compliance_score:<8.2f} | "
+                f"{c.sandbox_reliability_score:<8.2f} | {c.aggregate_score:<8.2f} | {status}"
             )
         print("=" * 80)
         avg_score_a = sum(c.aggregate_score for c in cards_a) / len(cards_a)
         print(f"Option A Aggregate Score: {avg_score_a:.2f} (Threshold: 0.85)")
         print(f"Option A Result: {'PASSED' if all_passed_a else 'FAILED'}\n")
 
-        assert all_passed_b and avg_score_b >= 0.85, f"Option B evaluation score {avg_score_b} below threshold"
+        print("\n--- Option B: A2A Protocol & Deliverable Evaluation (Cloud Run A2A) ---")
+        cards_b = await SDOAgentEvaluator.run_benchmark_suite(mode="option_b_a2a")
+        all_passed_b = True
+        print("\n" + "=" * 80)
+        print(f"{'Benchmark ID':<15} | {'Domain':<10} | {'SSE Proto':<10} | {'Lifecycle':<10} | {'Routing':<8} | {'Artifacts':<10} | {'Score':<8} | Status")
+        print("-" * 80)
+        for c in cards_b:
+            status = "PASS" if c.passed else "FAIL"
+            if not c.passed:
+                all_passed_b = False
+            print(
+                f"{c.loop_id:<15} | {c.node_id:<10} | {c.gherkin_contract_score:<10.2f} | "
+                f"{c.graph_conformance_score:<10.2f} | {c.skill_compliance_score:<8.2f} | "
+                f"{c.sandbox_reliability_score:<10.2f} | {c.aggregate_score:<8.2f} | {status}"
+            )
+        print("=" * 80)
+        avg_score_b = sum(c.aggregate_score for c in cards_b) / len(cards_b)
+        print(f"Option B Aggregate Score: {avg_score_b:.2f} (Threshold: 0.85)")
+        print(f"Option B Result: {'PASSED' if all_passed_b else 'FAILED'}\n")
+
         assert all_passed_a and avg_score_a >= 0.85, f"Option A evaluation score {avg_score_a} below threshold"
+        assert all_passed_b and avg_score_b >= 0.85, f"Option B evaluation score {avg_score_b} below threshold"
         print("All Evaluation Benchmarks across Option A & Option B PASSED.")
 
     asyncio.run(_main())

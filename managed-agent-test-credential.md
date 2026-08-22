@@ -35,7 +35,7 @@ This architecture validates that the **Agent Gateway with Dual-Identity Protocol
 | • Mediates OAuth 2.0 / IAM Credentials at the Gateway Boundary                                                     |
 +-------------------------------------------------------------------------------------------------------------------+
        |                                                                            |
-       | (Option A: Cloud Run A2A Bridge)                                           | (Option B: ADK Agent Runtime Engine)
+       | (Option A: Vertex AI Agent Runtime Engine)                                 | (Option B: Cloud Run A2A Bridge)
        v                                                                            v
 +-------------------------------------------------------------------------------------------------------------------+
 | MANAGED AGENT SANDBOX (/workspace)                                                                                |
@@ -64,13 +64,13 @@ This architecture validates that the **Agent Gateway with Dual-Identity Protocol
 
 The simulation validates **both deployment options** available in the enterprise agent fleet:
 
-| Dimension | Option A: Cloud Run A2A Agent | Option B: Vertex AI Agent Runtime Engine |
+| Dimension | Option A: Vertex AI Agent Runtime Engine | Option B: Cloud Run A2A Agent |
 |---|---|---|
-| **Hosting Target** | Google Cloud Run (`sdo-adk-cloudrun-a2a`) | Vertex AI Agent Runtime (`sdo-adk-agent-runtime`) |
-| **Ingress Protocol** | Google A2A v1.0 SSE Streaming (`/.well-known/agent-card.json`) | Vertex AI Reasoning Engine Client API (`client.query()`) |
+| **Hosting Target** | Vertex AI Agent Runtime (`sdo-adk-agent-runtime`) | Google Cloud Run (`sdo-adk-cloudrun-a2a`) |
+| **Ingress Protocol** | Vertex AI Reasoning Engine Client API (`client.query()`) | Google A2A v1.0 SSE Streaming (`/.well-known/agent-card.json`) |
 | **Reasoning Engine** | Vertex AI `gemini-3.7-flash` | Vertex AI `gemini-3.7-flash` |
-| **Governance Gates** | Interactive Chrome Dashboard & Google Chat Cards (`cardsV2`) | Programmatic & REST Human Gate Handlers |
-| **Credential Flow** | Gateway-mediated OAuth injection for MCP calls | Native Workload Identity + Gateway-mediated OAuth injection |
+| **Governance Gates** | Programmatic & REST Human Gate Handlers | Interactive Chrome Dashboard & Google Chat Cards (`cardsV2`) |
+| **Credential Flow** | Native Workload Identity + Gateway-mediated OAuth injection | Gateway-mediated OAuth injection for MCP calls |
 
 ---
 
@@ -191,8 +191,8 @@ The **Implementer Agent** synthesizes a self-contained Python FastAPI web servic
 ## 5. Summary of Verification Deliverables
 
 Upon executing this simulation, the following assets will be confirmed operational:
-1. **Option A Live Run:** Verification via Google A2A v1.0 SSE streaming on Cloud Run.
-2. **Option B Live Run:** Verification via Vertex AI Agent Runtime Reasoning Engine.
+1. **Option A Live Run:** Verification via Vertex AI Agent Runtime Reasoning Engine (`sdo-adk-agent-runtime`).
+2. **Option B Live Run:** Verification via Google A2A v1.0 SSE streaming on Cloud Run (`sdo-adk-cloudrun-a2a`).
 3. **Live Deployed Cloud Run Service & DOM Content Verification:** `sdo-hello-world-demo` displaying "Hello World" with automated HTML parsing confirming exact BigQuery metrics (`€1,240,500.00`, `142` invoices, `42` customers).
 4. **Browser Confirmation:** Live visual inspection in **Google Chrome**.
 5. **OpenTelemetry Cloud Trace:** Distributed trace capturing both BigQuery MCP and Cloud Run MCP spans.
@@ -245,7 +245,7 @@ This section provides an actionable, step-by-step implementation blueprint to en
 ---
 
 ### Phase 3: Implement Executable Simulation Runner (`scripts/simulate_managed_agent_oauth_mcp_journey.py`)
-- **Objective:** Provide a standalone CLI script that executes the complete 10-step lifecycle for both Option A (Cloud Run A2A) and Option B (Vertex AI Agent Runtime).
+- **Objective:** Provide a standalone CLI script that executes the complete 10-step lifecycle for both Option A (Vertex AI Agent Runtime) and Option B (Cloud Run A2A).
 - **Execution Steps:**
   1. Initialize `AgentGatewayAuth` with user `sarah.controller@wallbox.com`.
   2. Query `sdo_finance_demo.invoices` via `BigQueryMCPClient`.

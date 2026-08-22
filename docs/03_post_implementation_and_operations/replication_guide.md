@@ -59,7 +59,7 @@ terraform apply \
 ### Step 4: Deploy & Register Agents to Gemini Enterprise
 ```bash
 cd ..
-# Deploy Cloud Run container & register Option A (A2A) + Option B (Agent Runtime)
+# Deploy & register Option A (Agent Runtime) + Option B (Cloud Run A2A)
 ./scripts/deploy_both_to_gemini_enterprise.sh
 ```
 

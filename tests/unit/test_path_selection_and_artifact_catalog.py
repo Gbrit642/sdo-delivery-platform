@@ -147,14 +147,78 @@ async def test_api_tradeoff_and_artifact_endpoints():
 
 @pytest.mark.asyncio
 async def test_agent_system_prompts_strictly_prohibit_cli_commands():
-    """Verify that all agent system prompts contain strict non-technical guardrails."""
+    """Verify that all agent system prompts contain strict non-technical guardrails and ephemeral worker rules."""
     from agents.documental import DocumentalAgent
     from agents.arquitecto import ArquitectoAgent
     from agents.implementer import ImplementerAgent
     from agents.reviewer import ReviewerAgent
+    from agents.tradeoff_evaluator import TradeoffEvaluator
 
-    for agent_cls in [DocumentalAgent, ArquitectoAgent, ImplementerAgent, ReviewerAgent]:
+    for agent_cls in [DocumentalAgent, ArquitectoAgent, ImplementerAgent, ReviewerAgent, TradeoffEvaluator]:
         prompt = agent_cls.SYSTEM_PROMPT
-        assert "NON-TECHNICAL" in prompt or "non-technical" in prompt
+        assert "EPHEMERAL TASK WORKER" in prompt or "transient" in prompt.lower()
+        assert "Gemini Enterprise" in prompt
         assert "NEVER" in prompt
-        assert "<YOUR_PROJECT_ID>" in prompt or "terminal" in prompt
+        assert "Register a new permanent Assistant" in prompt or "register" in prompt.lower()
+
+
+def test_conversational_executive_brief_formatting():
+    """Verify that TradeoffEvaluator renders conversational executive briefs properly."""
+    brief_text = "Create a weekly currency variance analysis view comparing EUR invoices with USD receipts."
+    comparison = TradeoffEvaluator.evaluate_brief(brief_text, domain="finance")
+    exec_brief = TradeoffEvaluator.format_conversational_executive_brief(comparison, domain="finance")
+
+    assert "### 📋 Conversational Executive Brief (Finance Domain)" in exec_brief
+    assert "**Recommended Path:**" in exec_brief
+    assert "**Estimated Delivery Time:**" in exec_brief
+    assert "**Active Compute Cost:** $0 (Serverless Ephemeral)" in exec_brief
+    assert "WORM audit record" in exec_brief
+
+
+def test_adaptive_deliverable_card_formatting_all_types():
+    """Verify that format_adaptive_deliverable_card supports data_query, web_app, and work_item with badges."""
+    # 1. Data query card
+    data_card = TradeoffEvaluator.format_adaptive_deliverable_card(
+        domain="finance",
+        deliverable_type="data_query",
+        title="Weekly FX Variance Analysis",
+        summary="Automated query analyzing EUR/USD variance.",
+        metrics={"total_invoices": 142, "total_revenue_eur": 1240500.00},
+        worm_record_id="audit/finance/01KZZ/00000010/EVT-01.json",
+        duration_ms=450.2,
+    )
+    assert "## 🎉 Executive Deliverable: Weekly FX Variance Analysis" in data_card
+    assert "[✅ 100% Sandbox Verified]" in data_card
+    assert "[🔒 WORM Audit Sealed: SHA-256]" in data_card
+    assert "[⚡ Transient Worker Shutdown: $0 Idle Cost]" in data_card
+    assert "### 📊 Analytical KPIs (BigQuery / Databricks MCP)" in data_card
+    assert "| **Total Invoices** | `142` |" in data_card
+
+    # 2. Web app card
+    web_card = TradeoffEvaluator.format_adaptive_deliverable_card(
+        domain="finance",
+        deliverable_type="web_app",
+        title="SDO Hello World Financial Analytics",
+        summary="Deployed Cloud Run microservice with BigQuery data.",
+        preview_url="https://sdo-hello-world-demo-316329647160.us-central1.run.app",
+        metrics={"Total Revenue": "€1,240,500.00"},
+        gcs_uris={"Specification": "gs://bucket/spec.md"},
+        worm_record_id="audit/01KZZ/00000010/EVT-01.json",
+        duration_ms=850.0,
+    )
+    assert "### 🌐 Live Web Application (Cloud Run Admin MCP)" in web_card
+    assert "[SDO Hello World Financial Analytics](https://sdo-hello-world-demo-316329647160.us-central1.run.app)" in web_card
+    assert "### 📦 Cataloged Assets (GCS Storage Plane)" in web_card
+
+    # 3. Work item card
+    work_card = TradeoffEvaluator.format_adaptive_deliverable_card(
+        domain="sales",
+        deliverable_type="work_item",
+        title="Sales Pipeline Sync",
+        summary="Sync CRM pipeline metrics into Notion workspace.",
+        preview_url="https://notion.so/workspace/sales-pipeline",
+        duration_ms=320.0,
+    )
+    assert "### 📌 Work Item & Workflow Tracking (Notion / Jira MCP)" in work_card
+    assert "COMPLETED" in work_card
+
